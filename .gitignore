@@ -1,0 +1,63 @@
+# --- GWF workflow files ---
+*.gwfstate
+*.gwfstats
+*.gwfout
+*.gwferr
+gwf_logs/
+gwf_logs/*
+.gwf
+
+# --- Cluster job outputs ---
+slurm-*.out
+slurm-*.err
+*.out
+*.err
+*.log
+
+# --- Genomics files (never track) ---
+*.bam
+*.bam.bai
+*.cram
+*.crai
+*.sam
+*.vcf
+*.vcf.gz
+*.vcf.gz.tbi
+*.bcf
+*.bcf.csi
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+*.fa
+*.fai
+*.gff
+*.gff3
+*.bed
+*.bed.gz
+*.bedGraph
+*.idx
+
+# --- Intermediate results ---
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+*.old
+*.cache
+*.pickle
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.ipynb_checkpoints
+*.Rhistory
+# --- Large results directories you don't want in GitHub ---
+results/
+output/
+analysis/
+work/
+software/
+new_samples/

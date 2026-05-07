@@ -90,7 +90,7 @@ def ADMIXTURE_PLOT(admixture_plot_script, group, admixture_out, plot_out, k_min,
 def check_relatedness_king(group, vcf_path, contigs, samples, relatedness_out, done_prev, done):
     inputs  = [done_prev]
     outputs = [done]
-    options = {"cores": 4, "memory": "32g", "walltime": "4:00:00", "account": "megaFauna"}
+    options = {"cores": 4, "memory": "32g", "walltime": "04:00:00", "account": "megaFauna"}
     executor = Conda("megafauna")
 
     # Convert Python list → comma-separated string for bcftools
@@ -176,7 +176,7 @@ def subset_and_filter(vcf_in, samples, filter, pop_vcf, done_prev, done):
 
 # A.3 - Mask bed
 def mask_beds(sample, chrom, ref_folder, bed, parameters, done_prev, done):
-    inputs = [done_prev]
+    inputs = done_prev
     outputs = [done]
     options = {"cores" : 1, 'memory': "16g", 'walltime': "06:00:00", 'account': "megaFauna"}
     executor = Conda("megafauna")

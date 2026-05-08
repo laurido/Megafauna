@@ -22,7 +22,8 @@ gwf = Workflow()
 genus_list      = ["Loxodonta", "Elephas", "Boselaphus", "Panthera", "Rhinoceros", "Ceratotherium", "Diceros"]
 #genus_list = ["Elephas"]
 #genus_list = ["Ceratotherium", "Panthera"]
-#genus_list = ["Boselaphus"]
+#genus_list = ["Rhinoceros"]
+
 
 #pop = "pop"
 

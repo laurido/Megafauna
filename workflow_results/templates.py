@@ -254,7 +254,7 @@ def final_merge_mask(map_bed, cov_bed, final_bed, done_prev, done):
     # Merge mappability bed and coverage bed into one
     cat {map_bed} {cov_bed} | \
         sort -k1,1 -k2,2n | \
-        bedtools merge -d 800 -i stdin > {final_bed}
+        bedtools merge -i stdin > {final_bed}
 
     # Compress and index
     bgzip -f {final_bed}
@@ -264,6 +264,7 @@ def final_merge_mask(map_bed, cov_bed, final_bed, done_prev, done):
 
     """
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
+# -d 800 
 
 def mask_stats(sample_beds, mappability_bed, cov_bed_merged, final_bed, stats_file, done_prev, done):
     inputs  = [done_prev]

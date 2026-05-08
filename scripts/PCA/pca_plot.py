@@ -99,7 +99,7 @@ for i in range(species_and_refs.shape[0]):
         print(f"  Using CV best K={best_k}")
 
         # Try to load population assignments
-        assignment_file = f"{admixture_base}/pop_files/K{best_k}/{group}_population_assignments_K{best_k}.tsv"
+        assignment_file = f"/faststorage/project//megaFauna/sa_megafauna/results/{group}/{group}_population_assignments.tsv"
 
         if os.path.exists(assignment_file):
             assignments = pd.read_csv(assignment_file, sep="\t")[["sample_id", "population"]]

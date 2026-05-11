@@ -23,7 +23,7 @@ genus_list      = ["Loxodonta", "Elephas", "Boselaphus", "Panthera", "Rhinoceros
 #genus_list = ["Ceratotherium"] # -d 800
 genus_list = ["Rhinoceros"] # - d 500
 #genus_list = ["Rhinoceros", "Diceros"] # - d 200
-#genus_list = ["Boselaphus"] # -d 10 also uncia is here
+genus_list = ["Boselaphus", "Panthera"] # -d 50 also uncia is here
 #genus_list      = ["Loxodonta", "Elephas", "Panthera"]
 
 
@@ -95,7 +95,7 @@ for i in range(species_and_refs.shape[0]):
     print(len(chromosomes))
     mu = params.get("mu")
     mu_name = mu[:mu.find("e")]
-
+    gen = params.get("generation")
     # Population list
     with open(f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/population_list.txt") as f:
         pops = [line.strip() for line in f]
@@ -186,12 +186,12 @@ for i in range(species_and_refs.shape[0]):
         with open(f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/{pop}_filtered.txt") as f:
             sample_list = [line.strip() for line in f if line.strip()]
         # A.2 Choose a population for analysis and do missingness filtering
-        job_id_pop_and_missingness = f"population_and_missingness_filtering_{pop}_{group}"
+        job_id_pop_and_missingness = f"population_and_missingness_filtering_{pop}{contigs_included}_{group}"
         gwf.target_from_template(job_id_pop_and_missingness, 
                                  subset_and_filter(vcf_in       = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_concat_{group}.vcf.gz",
                                                    samples      = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/{pop}_filtered.txt",
                                                    filter       = filter,
-                                                   pop_vcf      = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{group}.vcf.gz",
+                                                   pop_vcf      = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}{contigs_included}_{group}.vcf.gz",
                                                    done_prev    = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_concat_chrA,
                                                    done         = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_pop_and_missingness))
         # A.3 - Mask bed
@@ -265,7 +265,7 @@ for i in range(species_and_refs.shape[0]):
     ##########################################
     for pop in pops:
     #    # B.1 - convert vcf file to smc files
-        job_id_pop_and_missingness = f"population_and_missingness_filtering_{pop}_{group}"
+        job_id_pop_and_missingness = f"population_and_missingness_filtering_{pop}{contigs_included}_{group}"
         job_id_final_mask_merge = f"final_merge_mask_{pop}_{group}"
         smc_files = []
         vcf2smc_dones = []
@@ -274,7 +274,7 @@ for i in range(species_and_refs.shape[0]):
             vcf2smc_dones.append(f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_vcf2smc)
             smc_files.append(f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/analysis_input/smcpp/{pop}_{chrom}_{group}.smc.gz")
             gwf.target_from_template(job_id_vcf2smc,
-                                     vcf2smc(vcf_in     = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{group}.vcf.gz",
+                                     vcf2smc(vcf_in     = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}{contigs_included}_{group}.vcf.gz",
                                              mask       = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/analysis_input/smcpp/masked_regions/final_mask_{pop}_{group}.bed.gz",
                                              chrom      = chrom,
                                              pop        = f"{pop}:{",".join(sample_list)}",
@@ -297,6 +297,7 @@ for i in range(species_and_refs.shape[0]):
         job_id_smcpp_plot = f"smcpp_plot_{pop}{contigs_included}_{mu_name}_{group}"
         gwf.target_from_template(job_id_smcpp_plot,
                                  smcpp_plot(estimate_json   = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/{job_id_smcpp_estimate}.final.json",
+                                            generation      = gen,
                                             plot_name       = f"/faststorage/project/megaFauna/sa_megafauna/results/shared/smcpp/{job_id_smcpp_plot}.png",
                                             done_prev       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate,
                                             done            = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_plot))

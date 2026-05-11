@@ -254,7 +254,7 @@ def final_merge_mask(map_bed, cov_bed, final_bed, done_prev, done):
     # Merge mappability bed and coverage bed into one
     cat {map_bed} {cov_bed} | \
         sort -k1,1 -k2,2n | \
-        bedtools merge -d 500 -i stdin > {final_bed}
+        bedtools merge -d 50 -i stdin > {final_bed}
 
     # Compress and index
     bgzip -f {final_bed}
@@ -326,13 +326,13 @@ def smcpp_estimate(smc_files, mu, estimate_name, outdir, done_prev, done):
  
 
 # B.3 - create plot of population trajectory
-def smcpp_plot(estimate_json, plot_name, done_prev, done):
+def smcpp_plot(estimate_json, generation, plot_name, done_prev, done):
     inputs = [done_prev]
     outputs = [done]
     options = default_options.copy()
     executor = Conda("smcpp")
     spec = f"""
-    smc++ plot --csv {plot_name} {estimate_json}
+    smc++ plot -g {generation} --csv {plot_name} {estimate_json}
 
     touch {done}
     """

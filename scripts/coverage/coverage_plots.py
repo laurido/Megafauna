@@ -93,3 +93,4 @@ for i in range(species_and_refs.shape[0]):
     os.makedirs(f"{path_prefix}/megaFauna/sa_megafauna/results/{group}/coverage/", exist_ok=True)
     plt.savefig(f"{path_prefix}/megaFauna/sa_megafauna/results/shared/coverage/Correlation_Coverage_Depth_and_Genome_Coverage_{group}.png")
     plt.savefig(f"{path_prefix}/megaFauna/sa_megafauna/results/{group}/coverage/Correlation_Coverage_Depth_and_Genome_Coverage_{group}.png")
+    plt.close()

@@ -20,9 +20,11 @@ gwf = Workflow()
 #   "generation":"{generation time}"}
 
 genus_list      = ["Loxodonta", "Elephas", "Boselaphus", "Panthera", "Rhinoceros", "Ceratotherium", "Diceros"]
-#genus_list = ["Elephas"]
-#genus_list = ["Ceratotherium", "Panthera"]
-#genus_list = ["Rhinoceros"]
+#genus_list = ["Ceratotherium"] # -d 800
+genus_list = ["Rhinoceros"] # - d 500
+#genus_list = ["Rhinoceros", "Diceros"] # - d 200
+#genus_list = ["Boselaphus"] # -d 10 also uncia is here
+#genus_list      = ["Loxodonta", "Elephas", "Panthera"]
 
 
 #pop = "pop"
@@ -295,7 +297,7 @@ for i in range(species_and_refs.shape[0]):
         job_id_smcpp_plot = f"smcpp_plot_{pop}{contigs_included}_{mu_name}_{group}"
         gwf.target_from_template(job_id_smcpp_plot,
                                  smcpp_plot(estimate_json   = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/{job_id_smcpp_estimate}.final.json",
-                                            plot_name       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/{job_id_smcpp_plot}.png",
+                                            plot_name       = f"/faststorage/project/megaFauna/sa_megafauna/results/shared/smcpp/{job_id_smcpp_plot}.png",
                                             done_prev       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate,
                                             done            = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_plot))
 
@@ -389,9 +391,10 @@ for i in range(species_and_refs.shape[0]):
 ###########################################
 #
 ## B.2 - estimate population size
-#job_id_gone = f"GONE_{pop}{contigs_included}_{group}"
-#gwf.target_from_template(job_id_gone, 
-#                         GONE(chrA_pop  = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{group}.vcf.gz",
-#                              gone_estimate = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/GONE/{job_id_gone},
-#                              done_prev = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_plink_map,
-#                              done      = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_gone))
+#    for pop in pops:
+#        job_id_gone = f"GONE_{pop}{contigs_included}_{group}"
+#        gwf.target_from_template(job_id_gone, 
+#                                 GONE(chrA_pop  = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{group}.vcf",
+#                                      gone_estimate = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/GONE/{job_id_gone}",
+#                                      done_prev = [],
+#                                      done      = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_gone))

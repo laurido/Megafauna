@@ -254,7 +254,7 @@ def final_merge_mask(map_bed, cov_bed, final_bed, done_prev, done):
     # Merge mappability bed and coverage bed into one
     cat {map_bed} {cov_bed} | \
         sort -k1,1 -k2,2n | \
-        bedtools merge -i stdin > {final_bed}
+        bedtools merge -d 500 -i stdin > {final_bed}
 
     # Compress and index
     bgzip -f {final_bed}
@@ -313,7 +313,7 @@ def smcpp_estimate(smc_files, mu, estimate_name, outdir, done_prev, done):
     executor = Conda("smcpp")
     spec = f"""
     smc++ estimate --base {estimate_name} --em-iterations 30 --cores 8 \
-    --timepoints 50 500000 --knots 16 \
+    --timepoints 50 100000 --knots 16 \
     {mu} {" ".join(smc_files)} -o {outdir}
 
     touch {done}
@@ -462,12 +462,13 @@ def plink_map(combined_map, plink_map, done_prev, done):
 ##########################################
 
 def GONE(chrA_pop, gone_estimate, done_prev, done):
-    inputs = [done_prev]
+    inputs = done_prev
     outputs = [done]
-    options = default_options.copy()
+    options = {"memory": "32g", "cores":  1, "walltime": "12:00:00", 'account': "megaFauna"}
     executor = Conda("megafauna")
     spec = f"""
-        gone2 -r {chrA_pop} -o {gone_estimate}
+        [ ! -f {chrA_pop} ] && zcat {chrA_pop}.gz > {chrA_pop}
+        gone2 -r 1 {chrA_pop} -o {gone_estimate}
         touch {done}
     """
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)

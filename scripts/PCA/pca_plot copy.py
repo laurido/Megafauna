@@ -89,7 +89,7 @@ for i in range(species_and_refs.shape[0]):
 kept_samples    = pd.concat(all_kept,    ignore_index=True)
 removed_samples = pd.concat(all_removed, ignore_index=True)
 
-out_dir = f"/faststorage/project/megaFauna/sa_megafauna/results"
+out_dir = f"/faststorage/project/megaFauna/sa_megafauna/results/shared/"
 
 kept_samples.to_csv(f"{out_dir}/kept_samples.txt",    sep="\t", index=False)
 removed_samples.to_csv(f"{out_dir}/removed_samples.txt", sep="\t", index=False)

@@ -152,6 +152,7 @@ def vcfconcat(vcfs, contigs, chrA_vcf, done):
     vcf_list = " ".join(vcfs)
     contig_str = ",".join(contigs)
     spec = f"""
+    mkdir -p "$(dirname "{done}")"
     bcftools concat -a -r {contig_str} {vcf_list} -Oz -o {chrA_vcf}
     bcftools index {chrA_vcf}
 
@@ -175,13 +176,14 @@ def subset_and_filter(vcf_in, samples, filter, pop_vcf, done_prev, done):
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
 
 # A.3 - Mask bed
-def mask_beds(sample, chrom, ref_folder, bed, parameters, done_prev, done):
+def mask_beds(sample, chrom, ref_folder, bed, done_prev, done):
     inputs = done_prev
     outputs = [done]
     options = {"cores" : 1, 'memory': "16g", 'walltime': "06:00:00", 'account': "megaFauna"}
     executor = Conda("megafauna")
     spec = f"""
-    python /faststorage/project/megaFauna/people/laurids/scripts/recombination_map/mask.py {sample} {chrom} {bed} {parameters} {ref_folder}
+    mkdir -p "$(dirname "{bed}")"
+    python /faststorage/project/megaFauna/people/laurids/scripts/recombination_map/mask.py {sample} {chrom} {bed} {ref_folder}
     touch {done}
     """
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
@@ -297,13 +299,13 @@ def vcf2smc(vcf_in, mask, chrom, pop, smc_file, done_prev, done):
     options = default_options.copy()
     executor = Conda("smcpp")
     spec = f"""
+    mkdir -p "$(dirname "{smc_file}")"
     smc++ vcf2smc {vcf_in} {smc_file} \
     {chrom} {pop} -m {mask}
 
     touch {done}
     """
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
-#-m {mask}
 
 # B.2 - estimate population size
 def smcpp_estimate(smc_files, mu, estimate_name, outdir, done_prev, done):
@@ -319,11 +321,17 @@ def smcpp_estimate(smc_files, mu, estimate_name, outdir, done_prev, done):
     touch {done}
     """
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
-#--knots 26
-#--knots 26 --timepoints 40 90000
-#     --timepoints 100 100000 --knots 10 \
 
- 
+#def smcpp_estimate(smc_files, mu, estimate_name, outdir, done_prev, done):
+#    inputs = [done_prev]
+#    outputs = [done]
+#    options = {"memory": "32g", "cores":  1, "walltime": "01:00:00", 'account': "megaFauna"}
+#    executor = Conda("smcpp")
+#    spec = f"""
+#
+#    touch {done}
+#    """
+#    return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
 
 # B.3 - create plot of population trajectory
 def smcpp_plot(estimate_json, generation, plot_name, done_prev, done):
@@ -337,7 +345,20 @@ def smcpp_plot(estimate_json, generation, plot_name, done_prev, done):
     touch {done}
     """
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
+# -g {generation} 
 
+# B.4 - create plot of population trajectory
+def smcpp_plot_generation(estimate_json, plot_name, done_prev, done):
+    inputs = [done_prev]
+    outputs = [done]
+    options = default_options.copy()
+    executor = Conda("smcpp")
+    spec = f"""
+    smc++ plot --csv {plot_name} {estimate_json}
+
+    touch {done}
+    """
+    return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
 
 ##########################################
 # 	  --- pyrho steps ---
@@ -349,6 +370,7 @@ def make_contig_files(vcf_in, chrom, contig_vcf, done_prev, done):
     options = default_options.copy()
     executor = Conda("megafauna")
     spec = f"""
+    mkdir -p "$(dirname "{contig_vcf}")"
     bcftools view -r {chrom} {vcf_in} -Oz -o {contig_vcf}
     bcftools index {contig_vcf}
 
@@ -364,6 +386,7 @@ def pyrho_lookup(estimate_csv, sample_size, mu, pyrho_table, done_prev, done):
     options = {"memory": "64g", "cores":  1, "walltime": "12:00:00", 'account': "megaFauna"}
     executor = Conda("pyrho")
     spec = f"""
+    mkdir -p "$(dirname "{pyrho_table}")"
     pyrho make_table --samplesize {sample_size} \
     --mu {mu} --outfile {pyrho_table} --smcpp_file {estimate_csv}
 
@@ -390,7 +413,7 @@ def pyrho_hyperparam(estimate_csv, sample_size, pyrho_table, mu, hyperparam_file
     # C.3 - pyrho recombination map estimation
 
 def pyrho_optimize(contig_vcf, pyrho_table, rmap_out, done_prev, done):
-    inputs = [done_prev]
+    inputs = done_prev
     outputs = [done]
     options = default_options.copy()
     executor = Conda("pyrho")
@@ -420,7 +443,7 @@ def pyrho_compute(pyrho_table, r2_out, done_prev, done):
 
 # C.5 - combine recombination maps and convert to PLINK format
 def combine_maps(rmaps, combined_map, done_prev, done):
-    inputs = [done_prev]
+    inputs = done_prev
     outputs = [done]
     options = default_options.copy()
     executor = Conda("megafauna")
@@ -460,15 +483,27 @@ def plink_map(combined_map, plink_map, done_prev, done):
 ##########################################
 #    	     --- GONE ---
 ##########################################
+def unzip_vcf(vcf_in, chromosomes, subset_vcf, done_prev, done):
+    inputs = [done_prev]
+    outputs = [done]
+    options = default_options.copy()
+    executor = Conda("megafauna")
+    spec = f"""
+    bcftools view -r {",".join(chromosomes)} {vcf_in} -Ov -o {subset_vcf}
+    touch {done}
+    """
+    return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
+
 
 def GONE(chrA_pop, gone_estimate, done_prev, done):
-    inputs = done_prev
+    inputs = [done_prev]
     outputs = [done]
     options = {"memory": "32g", "cores":  1, "walltime": "12:00:00", 'account': "megaFauna"}
     executor = Conda("megafauna")
+    gone_dir = gone_estimate.rsplit("/", 1)[0]
     spec = f"""
-        [ ! -f {chrA_pop} ] && zcat {chrA_pop}.gz > {chrA_pop}
-        gone2 -r 1 {chrA_pop} -o {gone_estimate}
+        mkdir -p {gone_dir}
+        gone2 -r 1 {chrA_pop} -s 2000000 -o {gone_estimate}
         touch {done}
     """
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)

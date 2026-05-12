@@ -6,11 +6,10 @@ import pandas as pd
 sample = sys.argv[1]
 chrom = sys.argv[2]
 bed = sys.argv[3]
-cov_min, min_het_ad, gq_min = sys.argv[4].split(",")
-ref_folder = sys.argv[5]
-cov_min    = int(cov_min)
-min_het_ad = int(min_het_ad)
-gq_min     = int(gq_min)
+ref_folder = sys.argv[4]
+cov_min    = 5
+min_het_ad = 3
+gq_min     = 30
 
 species = bed.split("/")[6]
 

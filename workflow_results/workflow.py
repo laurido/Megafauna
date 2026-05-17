@@ -22,7 +22,7 @@ genus_list      = ["Loxodonta", "Elephas", "Boselaphus", "Panthera", "Rhinoceros
 #genus_list = ["Ceratotherium"] # -d 800
 #genus_list = ["Diceros"] # - d 200
 #genus_list = ["Boselaphus", "Panthera"] # -d 50 also uncia is here
-genus_list = ["Loxodonta"] # -d 75
+#genus_list = ["Loxodonta"] # -d 75
 #genus_list = ["Elephas","Panthera"] # -d 50 pardus, tigris and leo
 
 # Filtering for missingness. 10 means keeping only < than 10% Missingness SNPs
@@ -48,7 +48,7 @@ species_and_refs = species_and_refs.merge(references, how = "left")
 
 for i in range(species_and_refs.shape[0]):
     # Initialising folders and variables for putting in the functions
-    n_contigs_included = 10
+    n_contigs_included = 30
     n_pops = 1
 
     group      = species_and_refs.FOLDER[i]

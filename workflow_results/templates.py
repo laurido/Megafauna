@@ -489,7 +489,11 @@ def unzip_vcf(vcf_in, chromosomes, subset_vcf, done_prev, done):
     options = default_options.copy()
     executor = Conda("megafauna")
     spec = f"""
-    bcftools view -r {",".join(chromosomes)} {vcf_in} -Ov -o {subset_vcf}
+    bcftools view -r {",".join(chromosomes)} {vcf_in} | \
+    bcftools query -f '%CHROM\t%POS\n' | \
+    shuf -n 2000000 | \
+    sort -k1,1 -k2,2n | \
+    bcftools view -T - {vcf_in} -Ov -o {subset_vcf}
     touch {done}
     """
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
@@ -503,7 +507,7 @@ def GONE(chrA_pop, gone_estimate, done_prev, done):
     gone_dir = gone_estimate.rsplit("/", 1)[0]
     spec = f"""
         mkdir -p {gone_dir}
-        gone2 -r 1 {chrA_pop} -s 2000000 -o {gone_estimate}
+        gone2 -r 1 {chrA_pop} -o {gone_estimate}
         touch {done}
     """
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)

@@ -48,7 +48,7 @@ species_and_refs = species_and_refs.merge(references, how = "left")
 
 for i in range(species_and_refs.shape[0]):
     # Initialising folders and variables for putting in the functions
-    n_contigs_included = 30
+    n_contigs_included = 0
     n_pops = 1
 
     group      = species_and_refs.FOLDER[i]
@@ -244,51 +244,51 @@ for i in range(species_and_refs.shape[0]):
 #    ##########################################
 #    #      C     --- smc++ ---               #
 #    ##########################################
-#    for pop in pops:
-#        # C.1 - convert vcf file to smc files
-#        job_id_final_mask_merge = f"final_merge_mask_{pop}_{group}"
-#        smc_files = []
-#        vcf2smc_dones = []
-#        for chrom in chromosomes:
-#            job_id_vcf2smc = f"vcf2smc_{pop}_{chrom}_{group}"
-#            vcf2smc_dones.append(f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_vcf2smc)
-#            smc_files.append(f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/smc_files/{pop}_{chrom}_{group}.smc.gz")
-#            gwf.target_from_template(job_id_vcf2smc,
-#                                     vcf2smc(vcf_in     = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{n_contigs_included}_{group}.vcf.gz",
-#                                             mask       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/masked_regions/final_mask_{pop}_{group}.bed.gz",
-#                                             chrom      = chrom,
-#                                             pop        = f"{pop}:{",".join(sample_dict[pop])}",
-#                                             smc_file   = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/smc_files/{pop}_{chrom}_{group}.smc.gz",
-#                                             done_prev  = [f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_final_mask_merge, 
-#                                                           f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_pop_and_missingness],
-#                                             done       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_vcf2smc))
-#
-#        # C.2 - estimate population size
-#        job_id_smcpp_estimate = f"smcpp_estimate_{pop}_{n_contigs_included}_{group}"
-#        gwf.target_from_template(job_id_smcpp_estimate,
-#                                 smcpp_estimate(smc_files       = smc_files,
-#                                                mu              = mu,
-#                                                estimate_name   = job_id_smcpp_estimate,
-#                                                outdir          = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/",
-#                                                done_prev       = vcf2smc_dones,
-#                                                done            = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate))
-#
-#        # C.3 - create plot of population trajectory in years
-#        job_id_smcpp_plot = f"smcpp_plot_{pop}_{n_contigs_included}_{group}_{gen}"
-#        gwf.target_from_template(job_id_smcpp_plot,
-#                                 smcpp_plot(estimate_json   = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/{job_id_smcpp_estimate}.final.json",
-#                                            generation      = gen,
-#                                            plot_name       = f"/faststorage/project/megaFauna/sa_megafauna/results/shared/smcpp/{job_id_smcpp_plot}.png",
-#                                            done_prev       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate,
-#                                            done            = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_plot))
-#                # C.4 - create plot of population trajectory in generations
-#        job_id_smcpp_plot = f"smcpp_plot_{pop}_{n_contigs_included}_{group}"
-#        gwf.target_from_template(job_id_smcpp_plot,
-#                                 smcpp_plot_generation(estimate_json   = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/{job_id_smcpp_estimate}.final.json",
-#                                            plot_name       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/{job_id_smcpp_plot}.png",
-#                                            done_prev       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate,
-#                                            done            = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_plot))
-#
+    for pop in pops:
+        # C.1 - convert vcf file to smc files
+        job_id_final_mask_merge = f"final_merge_mask_{pop}_{group}"
+        smc_files = []
+        vcf2smc_dones = []
+        for chrom in chromosomes:
+            job_id_vcf2smc = f"vcf2smc_{pop}_{chrom}_{group}"
+            vcf2smc_dones.append(f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_vcf2smc)
+            smc_files.append(f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/smc_files/{pop}_{chrom}_{group}.smc.gz")
+            gwf.target_from_template(job_id_vcf2smc,
+                                     vcf2smc(vcf_in     = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{group}.vcf.gz",
+                                             mask       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/masked_regions/final_mask_{pop}_{group}.bed.gz",
+                                             chrom      = chrom,
+                                             pop        = f"{pop}:{",".join(sample_dict[pop])}",
+                                             smc_file   = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/smc_files/{pop}_{chrom}_{group}.smc.gz",
+                                             done_prev  = [f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_final_mask_merge, 
+                                                           f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_pop_and_missingness],
+                                             done       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_vcf2smc))
+
+        # C.2 - estimate population size
+        job_id_smcpp_estimate = f"smcpp_estimate_{pop}_{n_contigs_included}_{group}"
+        gwf.target_from_template(job_id_smcpp_estimate,
+                                 smcpp_estimate(smc_files       = smc_files,
+                                                mu              = mu,
+                                                estimate_name   = job_id_smcpp_estimate,
+                                                outdir          = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/",
+                                                done_prev       = vcf2smc_dones,
+                                                done            = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate))
+
+        # C.3 - create plot of population trajectory in years
+        job_id_smcpp_plot = f"smcpp_plot_{pop}_{n_contigs_included}_{group}_{gen}"
+        gwf.target_from_template(job_id_smcpp_plot,
+                                 smcpp_plot(estimate_json   = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/{job_id_smcpp_estimate}.final.json",
+                                            generation      = gen,
+                                            plot_name       = f"/faststorage/project/megaFauna/sa_megafauna/results/shared/smcpp/{job_id_smcpp_plot}.png",
+                                            done_prev       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate,
+                                            done            = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_plot))
+                # C.4 - create plot of population trajectory in generations
+        job_id_smcpp_plot = f"smcpp_plot_{pop}_{n_contigs_included}_{group}"
+        gwf.target_from_template(job_id_smcpp_plot,
+                                 smcpp_plot_generation(estimate_json   = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/{job_id_smcpp_estimate}.final.json",
+                                            plot_name       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/{job_id_smcpp_plot}.png",
+                                            done_prev       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate,
+                                            done            = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_plot))
+
     ##########################################
     #    	D      --- pyrho ---             #
     ##########################################
@@ -370,20 +370,20 @@ for i in range(species_and_refs.shape[0]):
 #    ##########################################
 #    #    	     --- GONE ---                #
 #    ##########################################
-    for pop in pops:
-        # E.1 Make unzipped vcf for GONE 
-        job_id_unzip_vcf = f"unzip_vcf_{pop}_{n_contigs_included}_{group}"
-        gwf.target_from_template(job_id_unzip_vcf, 
-                                 unzip_vcf(vcf_in       = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{group}.vcf.gz",
-                                                   chromosomes  = subset_chromosomes,
-                                                   subset_vcf   = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{n_contigs_included}_{group}.vcf",
-                                                   done_prev    = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_pop_and_missingness,
-                                                   done         = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_unzip_vcf))
-        
-        # E.2 - estimate population size    
-        job_id_gone = f"GONE_{pop}_{n_contigs_included}_{group}"
-        gwf.target_from_template(job_id_gone, 
-                                 GONE(chrA_pop      = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{n_contigs_included}_{group}.vcf",
-                                      gone_estimate = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/GONE/{job_id_gone}",
-                                      done_prev     = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_unzip_vcf,
-                                      done          = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_gone))
+#    for pop in pops:
+#        # E.1 Make unzipped vcf for GONE 
+#        job_id_unzip_vcf = f"unzip_vcf_{pop}_{n_contigs_included}_{group}"
+#        gwf.target_from_template(job_id_unzip_vcf, 
+#                                 unzip_vcf(vcf_in       = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{group}.vcf.gz",
+#                                                   chromosomes  = subset_chromosomes,
+#                                                   subset_vcf   = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{n_contigs_included}_{group}.vcf",
+#                                                   done_prev    = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_pop_and_missingness,
+#                                                   done         = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_unzip_vcf))
+#        
+#        # E.2 - estimate population size    
+#        job_id_gone = f"GONE_{pop}_{n_contigs_included}_{group}"
+#        gwf.target_from_template(job_id_gone, 
+#                                 GONE(chrA_pop      = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{n_contigs_included}_{group}.vcf",
+#                                      gone_estimate = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/GONE/{job_id_gone}",
+#                                      done_prev     = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_unzip_vcf,
+#                                      done          = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_gone))

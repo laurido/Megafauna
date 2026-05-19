@@ -315,7 +315,7 @@ def smcpp_estimate(smc_files, mu, estimate_name, outdir, done_prev, done):
     executor = Conda("smcpp")
     spec = f"""
     smc++ estimate --base {estimate_name} --em-iterations 30 --cores 8 \
-    --timepoints 50 100000 --knots 16 \
+    --timepoints 100 100000 --knots 20 \
     {mu} {" ".join(smc_files)} -o {outdir}
 
     touch {done}

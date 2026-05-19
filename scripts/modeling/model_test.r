@@ -9,8 +9,7 @@ if (startsWith(getwd(), "/home/lakrids")) {
 
 df_all <- data.frame()
 
-
-genus_list <- c("Loxodonta", "Elephas", "Boselaphus", "Panthera", "Rhinoceros", "Ceratotherium", "Diceros")
+genus_list <- c("Elephas", "Boselaphus", "Panthera", "Rhinoceros", "Ceratotherium", "Diceros")
 
 # Read and combine sample files
 data <- map_dfr(genus_list, ~read.delim(paste0(path_prefix, "/megaFauna/sa_megafauna/metadata/samples_", .x, ".txt"),
@@ -35,6 +34,7 @@ for (i in seq_len(nrow(species_and_refs))) {
   ref_folder <- species_and_refs$REFERENCE_FOLDER[i]
   species_name <- gsub("_", " ", group)
   ref_name <-gsub("_", " ", ref_folder)
+  print(group)
     # Import species parameters
   pickle <- import("pickle")
   builtins <- import_builtins()
@@ -54,6 +54,7 @@ for (i in seq_len(nrow(species_and_refs))) {
   
   if (any(df_traits$phylacine_binomial == species_name)) {
     gen_time <- as.numeric(df_traits$generation_length_d)/365}
+  print(gen_time)
   
   # GONE data
   df_gone <- read.csv(Sys.glob(paste0(path_prefix, "/megaFauna/sa_megafauna/results/", group, "/GONE/*GONE2_Ne")), sep = "\t") %>%
@@ -67,7 +68,8 @@ for (i in seq_len(nrow(species_and_refs))) {
     mutate(time_ya = generations_ago * gen_time, Ne = if_else(row_number() == n(), NA, Ne)) %>%
     filter(generations_ago > max(df_gone$Generation))
   
-  end_time <- min(max(df_smc$time_ya), 800)
+  end_time <- min(max(df_smc$time_ya)/1000, 800)
+  print(end_time)
   
   # Join GONE and SMC
   df_ne <- bind_rows(
@@ -85,9 +87,15 @@ for (i in seq_len(nrow(species_and_refs))) {
   # Make minimum 1000 year windows for merging with other data
   df_ne_windows <- df_ne %>%
     arrange(time_kya) %>%
-    mutate(window_end  = lead(time_kya), window_end  = pmin(window_end, end_time),          # next timepoint = end of this window
-           window_size = window_end - time_kya) %>%     # size of each window in kya
-    filter(!is.na(window_end), time_kya <= end_time) # remove last row which has no end # cap at 800 kya               
+    mutate(window_end  = lead(time_kya), 
+           window_end  = pmin(window_end, end_time),
+           window_size = window_end - time_kya) %>%
+    filter(!is.na(window_end), time_kya <= end_time) %>%
+    # add a final row to close the last window
+    bind_rows(tibble(time_kya   = max(.$window_end),
+                     window_end  = max(.$window_end),
+                     window_size = 0,
+                     Ne          = last(.$Ne)))
   
   df_ne_agg <- df_ne_windows %>% rowwise() %>%
     do({row <- .
@@ -158,16 +166,12 @@ for (i in seq_len(nrow(species_and_refs))) {
     mutate(human_pressure = case_when(
       time_kya >= arrival_mean  ~ 0,                                        # window entirely before humans
       window_end <= arrival_mean ~ 1,                                        # window entirely after humans
-      TRUE ~ (arrival_mean - time_kya) / (window_end - time_kya)))            # partial overlap
+      TRUE ~ (arrival_mean - time_kya) / (window_end - time_kya))) # partial overlap
   
-    df_joined %>%
-    pivot_longer(cols = c(Ne_mean, Ne_pred_npp, Ne_pred_temp, Ne_pred_prec, Ne_pred_range),
-                 names_to = "series", values_to = "Ne") %>%
-    ggplot(aes(x = log10(time_kya), y = Ne, colour = series)) +
-    geom_line() +
-    labs(x = "Time (ka BP)", y = "Ne", colour = "")
+    # Add biogeography column
+    df_joined <- df_joined %>% mutate(biogeography = biogeo, generation_time = gen_time, adult_mass = df_traits$adult_mass_g)
+    
+    df_joined <- df_joined %>% rename(Ne = Ne_mean, p_human = human_pressure)
   
   df_all <- bind_rows(df_all, df_joined)
 }
-
-

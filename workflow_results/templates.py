@@ -256,7 +256,7 @@ def final_merge_mask(map_bed, cov_bed, final_bed, done_prev, done):
     # Merge mappability bed and coverage bed into one
     cat {map_bed} {cov_bed} | \
         sort -k1,1 -k2,2n | \
-        bedtools merge -d 50 -i stdin > {final_bed}
+        bedtools merge -d 75 -i stdin > {final_bed}
 
     # Compress and index
     bgzip -f {final_bed}

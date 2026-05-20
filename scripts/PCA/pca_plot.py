@@ -6,7 +6,7 @@ import pickle
 import os
 import math
 
-genus_list      = ["Loxodonta", "Boselaphus", "Panthera", "Elephas", "Rhinoceros", "Ceratotherium", "Diceros"]
+genus_list      = ["Loxodonta", "Boselaphus", "Panthera", "Elephas", "Ceratotherium", "Diceros"]
 data            = pd.concat([pd.read_table(f) for f in [f"/faststorage/project/megaFauna/sa_megafauna/metadata/samples_{genus}.txt" for genus in genus_list]], ignore_index=True)
 data            = data.reset_index(drop=True)
 ref_folders     = sorted(set(data.REFERENCE_FOLDER))

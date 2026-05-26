@@ -27,10 +27,9 @@ species_and_refs = species_and_refs.merge(references, how = "left")
 ##########################################
 #    	     --- Preparations ---
 ##########################################
+colors = plt.cm.tab10.colors
 
 for i in range(species_and_refs.shape[0]):
-    # Initialising folders and variables for putting in the functions
-
     group      = species_and_refs.FOLDER[i]
     ref_folder = species_and_refs.REFERENCE_FOLDER[i]
     inds_to_include = (data[data["FOLDER"] == group]["IND_ID"].drop_duplicates().tolist())
@@ -42,17 +41,51 @@ for i in range(species_and_refs.shape[0]):
                                   left_on='IND_ID', right_on='IND_ID', how='left')
     merged_df['het_autosomal'] = merged_df['autosomal'] / merged_df['len_covered_raw_A']
 
-    sns.scatterplot(data=merged_df, x='IND_ID', y='het_autosomal', edgecolor='black')
-    plt.xticks([])
-    #plt.title(f"Individual autosomal heterozygosity ({species})")
+    # --- Load population assignments (same logic as PCA script) ---
+    assignment_file = f"{path_prefix}/megaFauna/sa_megafauna/results/{group}/{group}_population_assignments.tsv"
+    pop_col = None
 
-    # get mean value
-    mean_val = merged_df['het_autosomal'].mean()
-    plt.axhline(mean_val, color='black', linestyle='--', label="mean")
-    plt.xlabel("Samples", fontsize=12)
-    plt.ylabel("Autosome Heterozygosity", fontsize=12)
-    plt.legend()
+    if os.path.exists(assignment_file):
+        assignments = pd.read_csv(assignment_file, sep="\t")[["sample_id", "population"]]
+        merged_df = merged_df.merge(assignments, left_on="IND_ID", right_on="sample_id", how="left")
+        pop_col = "population"
+
+    # --- Sort by population then by heterozygosity within each population ---
+    if pop_col and pop_col in merged_df.columns:
+        merged_df = merged_df.sort_values([pop_col]).reset_index(drop=True)
+    
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    if pop_col and pop_col in merged_df.columns:
+        populations = sorted(merged_df[pop_col].dropna().unique())
+        for pop_idx, pop in enumerate(populations):
+            subset = merged_df[merged_df[pop_col] == pop]
+            color = colors[pop_idx % len(colors)]
+            ax.scatter(subset.index, subset["het_autosomal"],
+                       label=f"{pop} (n={len(subset)})",
+                       color=color, edgecolor='black', s=40)
+            
+            # Per-cluster mean
+            pop_mean = subset["het_autosomal"].mean()
+            ax.hlines(pop_mean, subset.index.min(), subset.index.max(),
+                      color=color, linestyle='--', linewidth=1.5)
+            ax.text(subset.index.max(), pop_mean, f"  {pop_mean:.5f}",
+                    va='bottom', ha='left', fontsize=8, color=color)
+        ax.legend(fontsize=8)
+    else:
+        ax.scatter(merged_df.index, merged_df["het_autosomal"], edgecolor='black', s=40)
+        # Fallback: single global mean
+        mean_val = merged_df['het_autosomal'].mean()
+        ax.axhline(mean_val, color='black', linestyle='--')
+        ax.text(len(merged_df) * 0.01, mean_val, f"mean = {mean_val:.5f}",
+                va='bottom', ha='left', fontsize=9, color='black')
+
+    ax.set_xticks([])
+    ax.set_xlabel("Samples", fontsize=12)
+    ax.set_ylabel("Autosome Heterozygosity", fontsize=12)
+    ax.set_title(group)
     plt.tight_layout()
+
     os.makedirs(f"{path_prefix}/megaFauna/sa_megafauna/results/shared/heterozygosity/", exist_ok=True)
     os.makedirs(f"{path_prefix}/megaFauna/sa_megafauna/results/{group}/heterozygosity/", exist_ok=True)
     plt.savefig(f"{path_prefix}/megaFauna/sa_megafauna/results/shared/heterozygosity/heterozygosity_{group}.png")

@@ -162,10 +162,22 @@ for (i in seq_len(nrow(species_and_refs))) {
   arrival_mean <- mean(c(arrival$al, arrival$au))
   
   df_joined <- df_joined %>%
-    mutate(human_pressure = case_when(
+    mutate(human_pressure_mean = case_when(
       time_kya >= arrival_mean  ~ 0,                                        # window entirely before humans
       window_end <= arrival_mean ~ 1,                                        # window entirely after humans
       TRUE ~ (arrival_mean - time_kya) / (window_end - time_kya))) # partial overlap
+  
+  df_joined <- df_joined %>%
+    mutate(human_pressure_l = case_when(
+      time_kya >= arrival$al  ~ 0,                                        # window entirely before humans
+      window_end <= arrival$al ~ 1,                                        # window entirely after humans
+      TRUE ~ (arrival$al - time_kya) / (window_end - time_kya))) # partial overlap
+  
+  df_joined <- df_joined %>%
+    mutate(human_pressure_u = case_when(
+      time_kya >= arrival$au  ~ 0,                                        # window entirely before humans
+      window_end <= arrival$au ~ 1,                                        # window entirely after humans
+      TRUE ~ (arrival$au - time_kya) / (window_end - time_kya))) # partial overlap
   
     # Add biogeography column
     df_joined <- df_joined %>% mutate(biogeography = biogeo, generation_time = gen_time, adult_mass = df_traits$adult_mass_g, mutation_rate = mu)

@@ -8,9 +8,10 @@ if (startsWith(getwd(), "/home/lakrids")) {
 df <- read_csv(paste0(path_prefix, "/megaFauna/sa_megafauna/data/bioclim/modeling_data.csv"))
 
 df <- df %>% rename(temperature = mean_temp, npp = mean_npp, precipitation = mean_prec) %>%
+  filter(species != "Rhinoceros_unicornis", species != "Panthera_uncia")%>%
   arrange(species, time_kya) %>%
   group_by(species) %>%
-  mutate(lag_temperature = lag(temperature)) %>%
+  mutate(lag_temperature = lag(temperature), time_bp_kya = -time_kya) %>%
   ungroup() 
 
 df <- df %>%
@@ -18,9 +19,8 @@ df <- df %>%
 df %>% filter(startsWith(species, "Panthera"))
 
 df %>%
-  ggplot(aes(x = time_kya, y = Ne, colour = species)) +
-  geom_step() +
-  scale_x_continuous(trans = "log10") + 
+  ggplot(aes(x = -log10(-time_bp_kya), y = log(Ne), colour = species)) +
+  geom_point() +
   labs(x = "Time (kya)", y = "Ne", colour = "Species")
 
 #### Core mixed-effects model: Ne ~ combination of different climate + human predictors
@@ -69,7 +69,7 @@ m_mass <- lmer(
   # and human pressure
   data = df
 )
-
+summary(m_mass)
 # generation time as moderator
 # same structure as m_mass but using generation time instead
 # generation time is arguably more directly linked to demographic recovery rate

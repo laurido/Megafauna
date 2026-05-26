@@ -17,8 +17,9 @@ from templates import *
 import pandas as pd
 import re
 gwf = Workflow()
-
-genus_list      = ["Loxodonta", "Elephas", "Boselaphus", "Panthera", "Naja", "Rhinoceros", "Ceratotherium", "Diceros"]
+#SAMN28571083
+genus_list = ["Elephas", "Panthera"]
+#genus_list      = ["Loxodonta", "Elephas", "Boselaphus", "Panthera", "Naja", "Rhinoceros", "Ceratotherium", "Diceros"]
 data            = pd.concat([pd.read_table(f) for f in [f"/faststorage/project/megaFauna/sa_megafauna/metadata/samples_{genus}.txt" for genus in genus_list]], ignore_index=True) # add all SRR accession from genus_list in a single data frame
 data            = data.reset_index(drop=True)
 ref_folders     = sorted(set(data.REFERENCE_FOLDER)) # list of references needed to map the SRR accessions
@@ -693,9 +694,9 @@ for i in range(species_and_refs.shape[0]):
     inds_to_include = (data[data["FOLDER"] == group]["IND_ID"].drop_duplicates().tolist())
     coverage = pd.read_table(f"/faststorage/project/megaFauna/sa_megafauna/data/{ref_folder}/ref/samples_coverage_stats.txt")
     coverage = coverage[coverage.IND_ID.isin(inds_to_include)]
-    coverage_filtered = coverage[(coverage['cov_A'] > 10) & (coverage['cov_len_A'] > 0.90)]
+    coverage_filtered = coverage[(coverage['cov_A'] > 15) & (coverage['cov_len_A'] > 0.90)]
     if group == "Boselaphus_tragocamelus":
-        coverage_filtered = coverage[(coverage['cov_A'] > 10) & (coverage['cov_len_A'] > 0.84)]
+        coverage_filtered = coverage[(coverage['cov_A'] > 15) & (coverage['cov_len_A'] > 0.84)]
     with open(f"/faststorage/project/megaFauna/sa_megafauna/data/{ref_folder}/ref/samples_coverage_stats_{group}_filtered.txt", 'w') as f:
         coverage_filtered.to_csv(f, sep="\t", index=False)
  

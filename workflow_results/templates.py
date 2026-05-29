@@ -196,7 +196,7 @@ def sample_merge_mask(beds, merged_bed, done_prev, done):
     options = default_options.copy()
     executor = Conda("megafauna")
     spec = f"""
-    # Merge all per-contig mask files into one population mask
+    # Merge all per-contig mask files into one sample mask
     sort -k1,1 -k2,2n {" ".join(beds)} | \
        bedtools merge -i stdin > {merged_bed}
     rm {" ".join(beds)}
@@ -222,19 +222,28 @@ def merge_mask(beds, merged_bed, miss_frac, done_prev, done):
     outputs = [merged_bed, done]
     options = default_options.copy()
     executor = Conda("megafauna")
-    miss_threshold = math.ceil(len(beds) * miss_frac)
+    threshold = math.ceil(len(beds) * miss_frac)
     spec = f"""
-    # Concatenate all beds with a sample identifier, then count overlaps
-    cat $(for bed in {" ".join(beds)}; do echo $bed; done) \
-    | sort -k1,1 -k2,2n \
-    | bedtools merge -i stdin -c 1 -o count \
-    | awk -v thresh={miss_threshold} '$4 >= thresh {{print $1"\t"$2"\t"$3}}' \
-    > {merged_bed}
+    for bed in {' '.join(beds)}; do
+    awk '{{print $1, $2, $3, 1}}' OFS="\\t" "$bed" > "$bed.bg"
+    done
 
+    bedtools unionbedg -i {' '.join([b + '.bg' for b in beds])} > {merged_bed}.union.tmp
+
+    awk -v thresh={threshold} '
+    {{sum = 0
+        for (i = 4; i <= NF; i++) if ($i > 0) sum++
+        if (sum >= thresh) print $1"\\t"$2"\\t"$3
+    }}' {merged_bed}.union.tmp \
+        | bedtools merge -d 10 -i stdin > {merged_bed}
+
+    rm {' '.join([b + '.bg' for b in beds])}
+    rm {merged_bed}.union.tmp
+
+    
     touch {done}
     """
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
-
 def mappability_mask(fasta, mask_bed, index, genmap_out, done):
     inputs  = [fasta]
     outputs = [done]
@@ -257,22 +266,19 @@ def mappability_mask(fasta, mask_bed, index, genmap_out, done):
 def roh_make(gvcfs, samples, roh_file, done_prev, done):
     inputs  = []
     outputs = [done]
-    options = {"memory": "16g", "cores": 1, "walltime": "12:00:00", 'account': "megaFauna"}
+    options = {"memory": "16g", "cores": 1, "walltime": "24:00:00", 'account': "megaFauna"}
     executor = Conda("megafauna")
     gvcf_list = " ".join(gvcfs)
     spec = f"""
-    echo "Running ROH on {len(gvcfs)} chromosome gVCFs"  
     > {roh_file}
 
     for g in { ' '.join(gvcfs) }; do
     echo "Processing $g"
+    if [ ! -f "$g.csi" ]; then
     bcftools index $g
-
-    # Find the longest contig in the file
+    fi
     LONGEST=$(bcftools index -s $g | sort -k2,2nr | head -n1 | cut -f1)
     echo "  Longest contig: $LONGEST"
-
-    # Run ROH only on that contig
     bcftools roh -G30 -I -S {samples} -r $LONGEST $g >> {roh_file}
     done
 
@@ -284,26 +290,60 @@ def roh_make(gvcfs, samples, roh_file, done_prev, done):
 def roh_mask(roh_file, roh_bed, done_prev, done):
     inputs  = [done_prev]
     outputs = [done]
-    options = {"memory": "16g", "cores": 1, "walltime": "10:00:00", 'account': "megaFauna"}
+    options = {"memory": "16g", "cores": 1, "walltime": "05:00:00", 'account': "megaFauna"}
     executor = Conda("megafauna")
     spec = f"""
-    awk '$1 == "RG" && $6 >= 1000000 {{print $3, $4, $5}}' OFS="\\t" {roh_file} | \
-    sort -k1,1 -k2,2n | \
-    bedtools merge -i stdin > {roh_bed}
+    awk '$1 == "RG" && $6 >= 4000000 {{print $3, $4, $5}}' OFS="\\t" {roh_file} | \
+    sort -k1,1 -k2,2n | bedtools merge -i stdin > {roh_bed}
     touch {done}
     """
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
 
-def final_merge_mask(map_bed, cov_bed, roh_bed, final_bed, done_prev, done):
+def repeat_mask(repeat_file, repeat_bed, done_prev, done):
+    inputs  = done_prev
+    outputs = [done]
+    options = {"memory": "8g", "cores": 1, "walltime": "01:00:00", 'account': "megaFauna"}
+    executor = Conda("megafauna")
+    spec = f"""
+    # Ensure proper tab delimitation and unix line endings
+    sed 's/[[:space:]]\\+/\\t/g; s/\\r//' {repeat_file} | \
+        awk '$3 - $2 >= 100' > {repeat_file}.filtered
+    bedtools merge -i {repeat_file}.filtered > {repeat_bed}
+    rm {repeat_file}.filtered
+
+    touch {done}
+    """
+    return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
+
+def assembly_mask(assembly_file, assembly_bed, done_prev, done):
+    inputs  = done_prev
+    outputs = [done]
+    options = {"memory": "8g", "cores": 1, "walltime": "01:00:00", 'account': "megaFauna"}
+    executor = Conda("megafauna")
+    spec = f"""
+    sed 's/[[:space:]]\\+/\\t/g; s/\\r//' {assembly_file} | \
+        awk '$3 - $2 >= 0' > {assembly_file}.filtered
+
+    if [ -s {assembly_file}.filtered ]; then
+        bedtools merge -i {assembly_file}.filtered > {assembly_bed}
+    else
+        touch {assembly_bed}
+    fi
+    rm {assembly_file}.filtered
+
+    touch {done}
+    """
+    return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
+
+def final_merge_mask(map_bed, cov_bed, rep_bed, assembly_bed, roh_bed, final_bed, done_prev, done):
     inputs = done_prev
     outputs = [done]
     options = default_options.copy()
     executor = Conda("megafauna")
     spec = f"""
     # Merge mappability bed and coverage bed into one
-    cat {map_bed} {cov_bed} {roh_bed} | \
-        sort -k1,1 -k2,2n | \
-        bedtools merge -i stdin > {final_bed}
+    cat {map_bed} {cov_bed} {rep_bed} {assembly_bed} | \
+        sort -k1,1 -k2,2n | bedtools merge -d 1200 -i stdin > {final_bed}
 
     bgzip -f {final_bed}
     tabix -p bed {final_bed}.gz
@@ -313,7 +353,7 @@ def final_merge_mask(map_bed, cov_bed, roh_bed, final_bed, done_prev, done):
     """
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
 
-def mask_stats(sample_beds, roh_bed, mappability_bed, cov_bed_merged, final_bed, stats_file, done_prev, done):
+def mask_stats(sample_beds, roh_bed, mappability_bed, rep_bed, assembly_bed, cov_bed_merged, final_bed, stats_file, done_prev, done):
     inputs  = [done_prev]
     outputs = [done]
     options = default_options.copy()
@@ -321,11 +361,8 @@ def mask_stats(sample_beds, roh_bed, mappability_bed, cov_bed_merged, final_bed,
     beds_str = " ".join(sample_beds)
     spec = f"""
     python /faststorage/project/megaFauna/people/laurids/scripts/recombination_map/mask_stats.py \
-        --sample-beds {beds_str} \
-        --roh-bed {roh_bed} \
-        --mappability-bed {mappability_bed} \
-        --cov-bed {cov_bed_merged} \
-        --final-bed {final_bed} \
+        --sample-beds {beds_str} --roh-bed {roh_bed} --mappability-bed {mappability_bed} \
+        --cov-bed {cov_bed_merged} --rep-bed {rep_bed} --ass-bed {assembly_bed} --final-bed {final_bed} \
         --out {stats_file}
     touch {done}
 """
@@ -337,7 +374,7 @@ def mask_stats(sample_beds, roh_bed, mappability_bed, cov_bed_merged, final_bed,
 
 # B.1 - convert vcf file to smc files
 
-def vcf2smc(vcf_in, mask, c_val, chrom, pop, smc_file, done_prev, done):
+def vcf2smc(vcf_in, mask, chrom, pop, smc_file, done_prev, done):
     inputs = done_prev
     outputs = [done]
     options = default_options.copy()
@@ -359,8 +396,8 @@ def smcpp_estimate(smc_files, mu, estimate_name, outdir, done_prev, done):
     executor = Conda("smcpp")
     spec = f"""
     smc++ estimate --base {estimate_name} --em-iterations 2 --cores 8 \
-    --timepoints 200 100000 --knots 16 \
-    {mu} {" ".join(smc_files)} -o {outdir}
+    --timepoints 150 100000 --knots 16 {mu} {" ".join(smc_files)} \
+        -o {outdir}
 
     touch {done}
     """
@@ -551,7 +588,7 @@ def GONE(chrA_pop, gone_estimate, done_prev, done):
     gone_dir = gone_estimate.rsplit("/", 1)[0]
     spec = f"""
         mkdir -p {gone_dir}
-        gone2 -x -r 1 {chrA_pop} -o {gone_estimate}
+        gone2 -r 1 {chrA_pop} -o {gone_estimate}
         touch {done}
     """
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)

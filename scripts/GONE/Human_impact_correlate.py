@@ -42,21 +42,56 @@ for i in range(species_and_refs.shape[0]):
     with open(f"{path_prefix}/megaFauna/sa_megafauna/results/{group}/parameters_{group}.pkl", "rb") as f: 
         params = pickle.load(f)
 
-    generation = float(params.get("generation"))
+    generation = round(float(params.get("generation")))
+    biogeo = params.get("biogeography")
+    if biogeo == "Palearctic":
+        continue
+    if biogeo == "Afrotropical":
+        country = "Kenya"
+    else:
+        country = "India"
 
     ne_df = pd.read_csv(glob.glob(f"{path_prefix}/megaFauna/sa_megafauna/results/{group}/GONE/*_GONE2_Ne")[0], sep="\t")
     ne_df["time_years_ago"] = ne_df["Generation"] * generation
-    os.makedirs(f"{path_prefix}/megaFauna/sa_megafauna/results/shared/GONE/", exist_ok=True)
 
-    # Plotting
-    plt.figure(figsize=(8, 5))
-    plt.plot(ne_df["time_years_ago"], ne_df["Ne_diploids"], linestyle='-')
-    plt.gca()  # Optional: makes the most recent generation appear on the left
-    plt.title(f"{group} GONE2")
-    plt.xlabel("Years Ago", fontsize=14)
-    plt.ylabel("$N_e$", fontsize=14)
-    plt.grid(True)
-    plt.tight_layout()
-    plt.gca() # so it matches the paper figure
-    plt.savefig(f"{path_prefix}/megaFauna/sa_megafauna/results/shared/GONE/{group}_GONE.png")
-    plt.close()
+    human_df = pd.read_csv(f'{path_prefix}/megaFauna/sa_megafauna/data/human_impact/{biogeo}.csv')
+    human_df.columns = ["Year", "Inhabitants", "Cropland", "Urban"] + list(human_df.columns[4:])
+
+    os.makedirs(f"{path_prefix}/megaFauna/sa_megafauna/results/shared/human_impact/", exist_ok=True)
+
+    # some data wrangling to get the years up to the same axis :)
+    reference_year = 2023
+    ne_df["Year"] = reference_year - ne_df["time_years_ago"]
+    human_vars = ["Inhabitants", "Cropland", "Urban"]
+
+    # idea: interpolate the human impact variables (they are smooth and slow changing, so it should work). You still need to be careful though.
+    # Step 1: Create a full year range covering Ne_diploids years 
+    full_years = pd.DataFrame({"Year": ne_df["Year"]})
+    full_years
+
+    # Step 2: Reindex human impact data to this full range
+    impact_full = (
+        human_df.set_index("Year")
+        .reindex(full_years["Year"])  # this adds missing years as NaN
+        .interpolate(method="index", limit_direction="both")  # interpolate + extrapolate
+        .reset_index()
+    )
+
+    # Step 3: Merge with Ne_diploids
+    aligned = ne_df[["Year", "Ne_diploids"]].merge(
+        impact_full[["Year"] + human_vars],
+        on="Year",
+        how="left"
+    )
+    """
+    Use scipy.stats.spearmanr to calculate the correlation between each variable in human_vars and Ne_diploids:
+    """
+    # Step 4: Drop any remaining NaNs
+    aligned = aligned.dropna()
+
+    # Step 5: Compute Spearman correlations
+    correlations = {}
+
+    for var in human_vars:
+        rho, pval = spearmanr(aligned[var], aligned["Ne_diploids"])
+        correlations[var] = (rho, pval)

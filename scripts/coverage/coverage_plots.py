@@ -48,6 +48,20 @@ for i in range(species_and_refs.shape[0]):
     df_coverage = df_coverage[df_coverage.IND_ID.isin(inds_to_include)]
     # edit dataframe so we have cov_A >= 10 and cov_len_A >= 0.95 --> these will get a true in the "cov_filter" column
     df_coverage['cov_filter'] = (df_coverage['cov_A'] >= 10) & (df_coverage['cov_len_A'] >= 0.90)
+    filter_counts = df_coverage['cov_filter'].value_counts()
+    n_pass = filter_counts.get(True, 0)
+    n_fail = filter_counts.get(False, 0)
+
+    df_coverage['cov filter'] = df_coverage['cov_filter'].map({
+        True: f'True (n={n_pass})',
+        False: f'False (n={n_fail})'
+    })
+
+    palette = {
+        f'True (n={n_pass})': 'orange',
+        f'False (n={n_fail})': 'darkgrey'
+    }
+
 
     # set plot style
     sns.set_theme(style='whitegrid')
@@ -82,8 +96,8 @@ for i in range(species_and_refs.shape[0]):
 
     ### SCATTER PLOT ###
     ax_main = plt.subplot(gs[1, 0])
-    sns.scatterplot(data=df_coverage, x='cov_A', y='cov_len_A', ax=ax_main, hue='cov_filter',
-                    palette={True: 'orange', False: 'darkgrey'})
+    sns.scatterplot(data=df_coverage, x='cov_A', y='cov_len_A', ax=ax_main, 
+                hue='cov filter', palette=palette)
     ax_main.set_xlim(0, 85)
     ax_main.set_ylim(-0.05, 1.05)
     ax_main.set_xlabel('Depth')

@@ -91,3 +91,96 @@ for i in range(species_and_refs.shape[0]):
     plt.savefig(f"{path_prefix}/megaFauna/sa_megafauna/results/shared/heterozygosity/heterozygosity_{group}.png")
     plt.savefig(f"{path_prefix}/megaFauna/sa_megafauna/results/{group}/heterozygosity/heterozygosity_{group}.png")
     plt.close()
+
+# --- Combined boxplot across all species and populations ---
+all_data = []
+
+for i in range(species_and_refs.shape[0]):
+    group      = species_and_refs.FOLDER[i]
+    ref_folder = species_and_refs.REFERENCE_FOLDER[i]
+    inds_to_include = (data[data["FOLDER"] == group]["IND_ID"].drop_duplicates().tolist())
+
+    try:
+        merged_counts_df = pd.read_csv(f"{path_prefix}/megaFauna/sa_megafauna/data/{group}/VCF/snp_counts/merged_counts.txt", sep="\t")
+        coverage_df = pd.read_csv(f"{path_prefix}/megaFauna/sa_megafauna/data/{ref_folder}/ref/samples_coverage_stats_{group}_filtered.txt", sep="\t")
+        coverage_df = coverage_df[coverage_df.IND_ID.isin(inds_to_include)]
+        merged_df = merged_counts_df.merge(coverage_df[['IND_ID', 'len_covered_raw_A']],
+                                      on='IND_ID', how='left')
+        merged_df['het_autosomal'] = merged_df['autosomal'] / merged_df['len_covered_raw_A']
+
+        assignment_file = f"{path_prefix}/megaFauna/sa_megafauna/results/{group}/{group}_population_assignments.tsv"
+        if os.path.exists(assignment_file):
+            assignments = pd.read_csv(assignment_file, sep="\t")[["sample_id", "population"]]
+            merged_df = merged_df.merge(assignments, left_on="IND_ID", right_on="sample_id", how="left")
+            merged_df['group'] = group
+            all_data.append(merged_df[['het_autosomal', 'population', 'group']])
+    except FileNotFoundError:
+        continue
+
+combined_df = pd.concat(all_data, ignore_index=True)
+
+# Build labels with sample counts
+combined_df['label'] = combined_df.apply(
+    lambda r: f"{r['population']}\n(n={combined_df[(combined_df['population']==r['population']) & (combined_df['group']==r['group'])].shape[0]})",
+    axis=1
+)
+
+# Get unique ordered groups and populations
+groups = combined_df['group'].unique()
+# Calculate width per subplot based on number of populations
+n_pops_per_group = [len(sorted(combined_df[combined_df['group'] == group]['population'].dropna().unique())) 
+                    for group in groups]
+box_width = 0.4  # width per population in inches
+subplot_widths = [max(n * box_width, box_width * 1.5) for n in n_pops_per_group]  # minimum 2 boxes wide
+
+fig, axes = plt.subplots(1, len(groups), figsize=(sum(subplot_widths), 6),
+                          sharey=True, gridspec_kw={'wspace': 0.0, 'width_ratios': subplot_widths})
+
+if len(groups) == 1:
+    axes = [axes]
+
+for idx, (ax, group) in enumerate(zip(axes, groups)):
+    subset = combined_df[combined_df['group'] == group]
+    populations = sorted(subset['population'].dropna().unique())
+    
+    data_to_plot = [subset[subset['population'] == pop]['het_autosomal'].values 
+                    for pop in populations]
+    n_labels = [f"{pop}\n(n={len(subset[subset['population']==pop])})" 
+                for pop in populations]
+    
+    # Tighter positions - spacing of 0.6 instead of default 1.0
+    positions = [j * 0.4 for j in range(len(populations))]
+    
+    bp = ax.boxplot(data_to_plot, patch_artist=True, labels=n_labels,
+                    widths=0.3, positions=positions)
+    
+    # Set x limits to avoid too much padding
+    ax.set_xlim(positions[0] - 0.2, positions[-1] + 0.2)
+    
+    for patch, pop_idx in zip(bp['boxes'], range(len(populations))):
+        patch.set_facecolor(colors[pop_idx % len(colors)])
+
+    # Format species name as L. africana in italics
+    parts = group.split('_')
+    formatted = f"$\it{{{parts[0][0]}. {' '.join(parts[1:])}}}$"
+    ax.set_title(formatted, fontsize=10, rotation=20)    
+    ax.tick_params(axis='x', rotation=45, labelsize=7)
+    ax.yaxis.grid(True, linestyle='--', alpha=0.7)
+    ax.set_axisbelow(True)
+
+    if idx < len(groups) - 1:
+        ax.spines['right'].set_visible(True)
+        ax.spines['right'].set_linewidth(1.5)
+    
+    if idx > 0:
+        ax.spines['left'].set_visible(False)
+        ax.tick_params(left=False)
+
+axes[0].set_ylabel("Autosome Heterozygosity", fontsize=12)
+fig.suptitle("Heterozygosity by Population", fontsize=14, y=1.02)
+plt.tight_layout()
+
+os.makedirs(f"{path_prefix}/megaFauna/sa_megafauna/results/shared/heterozygosity/", exist_ok=True)
+plt.savefig(f"{path_prefix}/megaFauna/sa_megafauna/results/shared/heterozygosity/heterozygosity_boxplot_combined.png",
+            bbox_inches='tight')
+plt.close()

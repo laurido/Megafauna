@@ -17,13 +17,14 @@ gwf = Workflow()
 #   {"mu":"{mutation rate}"
 #   "generation":"{generation time}"}
 
-genus_list      = ["Loxodonta", "Elephas", "Boselaphus", "Panthera", "Rhinoceros", "Ceratotherium", "Diceros"]
-#genus_list =["Rhinoceros"] # -d 1300
-#genus_list = ["Ceratotherium"] # -d 800
-#genus_list = ["Diceros"] # - d 200
-#genus_list = ["Loxodonta"] # -d 100
-#genus_list = ["Boselaphus", "Elephas","Panthera"] # -d 50 pardus, tigris and leo
-#genus_list = ["Elephas"]
+genus_list      = ["Loxodonta", "Boselaphus", "Elephas", "Panthera", "Rhinoceros", "Ceratotherium", "Diceros"]
+#genus_list = ["Boselaphus"] #-d 500
+#genus_list      = ["Loxodonta", "Panthera", "Diceros"] # 1000 uncia and pardus
+genus_list      = ["Elephas", "Rhinoceros", "Ceratotherium"] # 1200
+#genus_list = ["Panthera"] # 1200
+#genus_list      = ["Loxodonta", "Elephas", "Panthera", "Rhinoceros", "Ceratotherium", "Diceros"]
+
+
 # Filtering for missingness. 10 means keeping only < than 10% Missingness SNPs
 filter = "10"
 
@@ -52,6 +53,7 @@ for i in range(species_and_refs.shape[0]):
 
     group      = species_and_refs.FOLDER[i]
     ref_folder = species_and_refs.REFERENCE_FOLDER[i]
+
 
     # Load regions table
     df_regions = pd.read_csv(f"/faststorage/project/megaFauna/sa_megafauna/data/{ref_folder}/ref/regions_{ref_folder}_updated.txt", sep="\t")
@@ -210,21 +212,21 @@ for i in range(species_and_refs.shape[0]):
         # B.4 - Merge to one bed per population
         job_id_mask_merge = f"merge_mask_{pop}_{group}"
         #subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_mask_merge])
-#        gwf.target_from_template(job_id_mask_merge,
-#                                 merge_mask(beds = sample_beds,
-#                                            merged_bed  = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/masked_regions/merge_mask_{pop}_{group}.bed",
-#                                            miss_frac   = 0.30,
-#                                            done_prev   = sample_beds_dones,
-#                                            done        = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_mask_merge))
+        gwf.target_from_template(job_id_mask_merge,
+                                 merge_mask(beds = sample_beds,
+                                            merged_bed  = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/masked_regions/merge_mask_{pop}_{group}.bed",
+                                            miss_frac   = 0.30,
+                                            done_prev   = sample_beds_dones,
+                                            done        = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_mask_merge))
         
         job_id_roh_make = f"roh_make_{group}_{pop}"
         #subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_roh_make])
-        gwf.target_from_template(job_id_roh_make, 
-                             roh_make(gvcfs     = [f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/gVCF/{group}_batch_{i}_fploidy_2_mploidy_2_gt.gvcf.gz" for i in autosome_batch_list],
-                                    samples     = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/{pop}_filtered.txt",
-                                       roh_file = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/roh_{pop}.txt",
-                                       done_prev = [],
-                                       done     = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_roh_make))
+#        gwf.target_from_template(job_id_roh_make, 
+#                             roh_make(gvcfs     = [f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/gVCF/{group}_batch_{i}_fploidy_2_mploidy_2_gt.gvcf.gz" for i in autosome_batch_list],
+#                                    samples     = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/{pop}_filtered.txt",
+#                                       roh_file = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/roh_{pop}.txt",
+#                                       done_prev = [],
+#                                       done     = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_roh_make))
 
         job_id_roh_mask = f"roh_mask_{group}_{pop}"
         #subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_roh_mask])
@@ -235,24 +237,42 @@ for i in range(species_and_refs.shape[0]):
                                        done     = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_roh_mask))
     # B.5 - Mapability mask
     job_id_mappability_mask = f"mapability_mask_{group}"
-    gwf.target_from_template(job_id_mappability_mask,
-                             mappability_mask(fasta = glob.glob(f"/faststorage/project/megaFauna/sa_megafauna/data/{ref_folder}/ref/*LargerThan1000bp.fasta")[0],
-                                        mask_bed    = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/{ref_folder}_mappability_mask.bed",
-                                        index       = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/index/",
-                                        genmap_out  = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/",
-                                        done        = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_mappability_mask))
-    
+#    gwf.target_from_template(job_id_mappability_mask,
+#                             mappability_mask(fasta = glob.glob(f"/faststorage/project/megaFauna/sa_megafauna/data/{ref_folder}/ref/*LargerThan1000bp.fasta")[0],
+#                                        mask_bed    = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/{ref_folder}_mappability_mask.bed",
+#                                        index       = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/index/",
+#                                        genmap_out  = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/",
+#                                        done        = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_mappability_mask))
+#    
+    job_id_repeat_mask = f"repeat_mask_{group}"
+    #subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_repeat_mask])
+    gwf.target_from_template(job_id_repeat_mask,
+                             repeat_mask(repeat_file = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/{ref_folder}_repeat_mask",
+                                        repeat_bed  = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/{ref_folder}_repeat_mask.bed",
+                                        done_prev   = [],
+                                        done        = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_repeat_mask))
+    job_id_assembly_mask = f"assembly_mask_{group}"
+    #subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_assembly_mask])
+    gwf.target_from_template(job_id_assembly_mask,
+                             assembly_mask(assembly_file = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/{ref_folder}_assembly_mask",
+                                        assembly_bed  = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/{ref_folder}_assembly_mask.bed",
+                                        done_prev   = [],
+                                        done        = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_assembly_mask))
+
     for pop in pops:
         # B.6 - Merged population bed with mappability bed for final bed 
         job_id_final_mask_merge = f"final_merge_mask_{pop}_{group}"
-        #subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_final_mask_merge])
+        subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_final_mask_merge])
         gwf.target_from_template(job_id_final_mask_merge,
                                  final_merge_mask(map_bed   = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/{ref_folder}_mappability_mask.bed",
-                                                cov_bed     = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/masked_regions/merge_mask_{pop}_{group}.bed",  
+                                                cov_bed     = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/masked_regions/merge_mask_{pop}_{group}.bed",
+                                                rep_bed     = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/{ref_folder}_repeat_mask.bed",  
+                                                assembly_bed = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/{ref_folder}_assembly_mask.bed",
                                                 final_bed   = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/masked_regions/final_mask_{pop}_{group}.bed",
                                                 roh_bed     = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/roh_mask_{pop}.bed",
                                                 done_prev   = [f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_mask_merge, f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_mappability_mask,
-                                                               f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_roh_mask],
+                                                               f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_roh_mask, f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_repeat_mask,
+                                                               f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_assembly_mask],
                                                 done        = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_final_mask_merge))
 
         # B.7 - Compute mask statistics per individual and for merged beds
@@ -262,6 +282,8 @@ for i in range(species_and_refs.shape[0]):
                                             cov_bed_merged  = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/masked_regions/merge_mask_{pop}_{group}.bed",  
                                             roh_bed     = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/roh_mask_{pop}.bed",
                                             mappability_bed = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/{ref_folder}_mappability_mask.bed",
+                                            rep_bed     = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/{ref_folder}_repeat_mask.bed",  
+                                            assembly_bed = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/{ref_folder}_assembly_mask.bed",
                                             final_bed       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/masked_regions/final_mask_{pop}_{group}.bed.gz",
                                             stats_file      = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/masked_regions/mask_stats_{group}.txt",
                                             done_prev       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_final_mask_merge,
@@ -270,54 +292,53 @@ for i in range(species_and_refs.shape[0]):
     ##########################################
     #      C     --- smc++ ---               #
     ##########################################
-#    for pop in pops:
-#        # C.1 - convert vcf file to smc files
-#        job_id_final_mask_merge = f"final_merge_mask_{pop}_{group}"
-#        smc_files = []
-#        vcf2smc_dones = []
-#        for chrom in subset_chromosomes:
-#            job_id_vcf2smc = f"vcf2smc_{pop}_{chrom}_{group}"
-#            #subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_vcf2smc])
-#            vcf2smc_dones.append(f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_vcf2smc)
-#            smc_files.append(f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/smc_files/{pop}_{chrom}_{group}.smc.gz")
-#            gwf.target_from_template(job_id_vcf2smc,
-#                                     vcf2smc(vcf_in     = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{group}.vcf.gz",
-#                                             mask       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/masked_regions/final_mask_{pop}_{group}.bed.gz",
-#                                             chrom        = chrom,
-#                                             c_val        = int(5 / float(params.get("het"))),
-#                                             pop        = f"{pop}:{",".join(sample_dict[pop])}",
-#                                             smc_file   = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/smc_files/{pop}_{chrom}_{group}.smc.gz",
-#                                             done_prev  = [f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_final_mask_merge, 
-#                                                           f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_pop_and_missingness],
-#                                             done       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_vcf2smc))
-#
-#        # C.2 - estimate population size
-#        job_id_smcpp_estimate = f"smcpp_estimate_{pop}_{n_contigs_included}_{group}"
-#        #subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate])
-#        gwf.target_from_template(job_id_smcpp_estimate,
-#                                 smcpp_estimate(smc_files       = smc_files,
-#                                                mu              = mu,
-#                                                estimate_name   = job_id_smcpp_estimate,
-#                                                outdir          = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/",
-#                                                done_prev       = vcf2smc_dones,
-#                                                done            = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate))
-#
-#        # C.3 - create plot of population trajectory in years
-#        job_id_smcpp_plot = f"smcpp_plot_{pop}_{n_contigs_included}_{group}_{gen}"
-#        gwf.target_from_template(job_id_smcpp_plot,
-#                                 smcpp_plot(estimate_json   = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/{job_id_smcpp_estimate}.final.json",
-#                                            generation      = gen,
-#                                            plot_name       = f"/faststorage/project/megaFauna/sa_megafauna/results/shared/smcpp/{job_id_smcpp_plot}.png",
-#                                            done_prev       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate,
-#                                            done            = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_plot))
-#                # C.4 - create plot of population trajectory in generations
-#        job_id_smcpp_plot = f"smcpp_plot_{pop}_{n_contigs_included}_{group}"
-#        gwf.target_from_template(job_id_smcpp_plot,
-#                                 smcpp_plot_generation(estimate_json   = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/{job_id_smcpp_estimate}.final.json",
-#                                            plot_name       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/{job_id_smcpp_plot}.png",
-#                                            done_prev       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate,
-#                                            done            = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_plot))
-#
+    for pop in pops:
+        # C.1 - convert vcf file to smc files
+        job_id_final_mask_merge = f"final_merge_mask_{pop}_{group}"
+        smc_files = []
+        vcf2smc_dones = []
+        for chrom in subset_chromosomes:
+            job_id_vcf2smc = f"vcf2smc_{pop}_{chrom}_{group}"
+            #subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_vcf2smc])
+            vcf2smc_dones.append(f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_vcf2smc)
+            smc_files.append(f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/smc_files/{pop}_{chrom}_{group}.smc.gz")
+            gwf.target_from_template(job_id_vcf2smc,
+                                     vcf2smc(vcf_in     = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{group}.vcf.gz",
+                                             mask       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/masked_regions/final_mask_{pop}_{group}.bed.gz",
+                                             chrom        = chrom,
+                                             pop        = f"{group}:{",".join(sample_dict[pop])}",
+                                             smc_file   = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/smc_files/{pop}_{chrom}_{group}.smc.gz",
+                                             done_prev  = [f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_final_mask_merge, 
+                                                           f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_pop_and_missingness],
+                                             done       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_vcf2smc))
+
+        # C.2 - estimate population size
+        job_id_smcpp_estimate = f"smcpp_estimate_{pop}_{n_contigs_included}_{group}"
+        subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate])
+        gwf.target_from_template(job_id_smcpp_estimate,
+                                 smcpp_estimate(smc_files       = smc_files,
+                                                mu              = mu,
+                                                estimate_name   = job_id_smcpp_estimate,
+                                                outdir          = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/",
+                                                done_prev       = vcf2smc_dones,
+                                                done            = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate))
+
+        # C.3 - create plot of population trajectory in years
+        job_id_smcpp_plot = f"smcpp_plot_{pop}_{n_contigs_included}_{group}_{gen}"
+        gwf.target_from_template(job_id_smcpp_plot,
+                                 smcpp_plot(estimate_json   = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/{job_id_smcpp_estimate}.final.json",
+                                            generation      = gen,
+                                            plot_name       = f"/faststorage/project/megaFauna/sa_megafauna/results/shared/smcpp/{job_id_smcpp_plot}.png",
+                                            done_prev       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate,
+                                            done            = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_plot))
+         # C.4 - create plot of population trajectory in generations
+        job_id_smcpp_plot = f"smcpp_plot_{pop}_{n_contigs_included}_{group}"
+        gwf.target_from_template(job_id_smcpp_plot,
+                                 smcpp_plot_generation(estimate_json   = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/{job_id_smcpp_estimate}.final.json",
+                                            plot_name       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/{job_id_smcpp_plot}.png",
+                                            done_prev       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate,
+                                            done            = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_plot))
+
     ##########################################
     #    	D      --- pyrho ---             #
     ##########################################
@@ -399,20 +420,21 @@ for i in range(species_and_refs.shape[0]):
 #    ##########################################
 #    #    	     --- GONE ---                #
 #    ##########################################
-    for pop in pops:
-        # E.1 Make unzipped vcf for GONE 
-        job_id_unzip_vcf = f"unzip_vcf_{pop}_{n_contigs_included}_{group}"
-        gwf.target_from_template(job_id_unzip_vcf, 
-                                 unzip_vcf(vcf_in       = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{group}.vcf.gz",
-                                                   chromosomes  = subset_chromosomes,
-                                                   subset_vcf   = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{n_contigs_included}_{group}.vcf",
-                                                   done_prev    = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_pop_and_missingness,
-                                                   done         = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_unzip_vcf))
-        
-        # E.2 - estimate population size    
-        job_id_gone = f"GONE_{pop}_{n_contigs_included}_{group}"
-        gwf.target_from_template(job_id_gone, 
-                                 GONE(chrA_pop      = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{n_contigs_included}_{group}.vcf",
-                                      gone_estimate = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/GONE/{job_id_gone}",
-                                      done_prev     = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_unzip_vcf,
-                                      done          = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_gone))
+#    for pop in pops:
+#        # E.1 Make unzipped vcf for GONE 
+#        job_id_unzip_vcf = f"unzip_vcf_{pop}_{n_contigs_included}_{group}"
+#        gwf.target_from_template(job_id_unzip_vcf, 
+#                                 unzip_vcf(vcf_in       = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{group}.vcf.gz",
+#                                                   chromosomes  = subset_chromosomes,
+#                                                   subset_vcf   = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{n_contigs_included}_{group}.vcf",
+#                                                   done_prev    = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_pop_and_missingness,
+#                                                   done         = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_unzip_vcf))
+#        
+#        # E.2 - estimate population size    
+#        job_id_gone = f"GONE_{pop}_{n_contigs_included}_{group}"
+#        #subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_gone])
+#        gwf.target_from_template(job_id_gone, 
+#                                 GONE(chrA_pop      = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/VCF/chrA_{pop}_{n_contigs_included}_{group}.vcf",
+#                                      gone_estimate = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/GONE/{job_id_gone}",
+#                                      done_prev     = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_unzip_vcf,
+#                                      done          = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_gone))

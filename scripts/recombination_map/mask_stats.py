@@ -9,6 +9,8 @@ parser.add_argument("--sample-beds", nargs="+")
 parser.add_argument("--roh-bed")
 parser.add_argument("--mappability-bed")
 parser.add_argument("--cov-bed")
+parser.add_argument("--rep-bed")
+parser.add_argument("--ass-bed")
 parser.add_argument("--final-bed")  # bgzipped
 parser.add_argument("--out")
 args = parser.parse_args()
@@ -53,7 +55,9 @@ for bed in args.sample_beds:
 
 
 # Species level rows
+rows["assembly"]  = masked_bases_per_chrom(args.ass_bed)
 rows["ROH"]  = masked_bases_per_chrom(args.roh_bed)
+rows["repeats"]  = masked_bases_per_chrom(args.rep_bed)
 rows["mappability"]  = masked_bases_per_chrom(args.mappability_bed)
 rows["coverage"]     = masked_bases_per_chrom(args.cov_bed)
 rows["final_merged"] = masked_bases_per_chrom(args.final_bed, bgzipped=True)

@@ -4,6 +4,8 @@ import pandas as pd
 import pickle
 from templates import *
 import glob
+import random
+random.seed(1)
 
 gwf = Workflow()
 
@@ -18,10 +20,13 @@ gwf = Workflow()
 #   "generation":"{generation time}"}
 
 genus_list      = ["Loxodonta", "Boselaphus", "Elephas", "Panthera", "Rhinoceros", "Ceratotherium", "Diceros"]
-#genus_list = ["Boselaphus"] #-d 500
-#genus_list      = ["Loxodonta", "Panthera", "Diceros"] # 1000 uncia and pardus
-genus_list      = ["Elephas", "Rhinoceros", "Ceratotherium"] # 1200
-#genus_list = ["Panthera"] # 1200
+#genus_list = ["Boselaphus"] #-d 500 done
+#genus_list      = ["Loxodonta", "Panthera", "Diceros"] # 1000 uncia done
+#genus_list      = ["Rhinoceros"] # 1200 done
+#genus_list = ["Panthera"] # 1100 pardus done
+#genus_list = ["Panthera"] #3100
+#genus_list = ["Elephas"] # 1400 done
+#genus_list      = ["Ceratotherium"] # 3700 done
 #genus_list      = ["Loxodonta", "Elephas", "Panthera", "Rhinoceros", "Ceratotherium", "Diceros"]
 
 
@@ -48,7 +53,7 @@ species_and_refs = species_and_refs.merge(references, how = "left")
 
 for i in range(species_and_refs.shape[0]):
     # Initialising folders and variables for putting in the functions
-    n_contigs_included = 30
+    n_contigs_included = 0
     n_pops = 1
 
     group      = species_and_refs.FOLDER[i]
@@ -170,6 +175,7 @@ for i in range(species_and_refs.shape[0]):
     # Read sample IDs from file for a given population SHOULD NEVER BE COMMENTED OUT
         with open(f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/{pop}_filtered.txt") as f:
             sample_list = [line.strip() for line in f if line.strip()]
+        random.shuffle(sample_list)
         sample_dict[pop] = sample_list
         
         # B.1 Subset vcf file by population and filter missingness
@@ -251,6 +257,7 @@ for i in range(species_and_refs.shape[0]):
                                         repeat_bed  = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/{ref_folder}_repeat_mask.bed",
                                         done_prev   = [],
                                         done        = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_repeat_mask))
+    
     job_id_assembly_mask = f"assembly_mask_{group}"
     #subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_assembly_mask])
     gwf.target_from_template(job_id_assembly_mask,
@@ -262,7 +269,8 @@ for i in range(species_and_refs.shape[0]):
     for pop in pops:
         # B.6 - Merged population bed with mappability bed for final bed 
         job_id_final_mask_merge = f"final_merge_mask_{pop}_{group}"
-        subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_final_mask_merge])
+        #subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_final_mask_merge])
+        #subprocess.run(["touch", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_final_mask_merge])
         gwf.target_from_template(job_id_final_mask_merge,
                                  final_merge_mask(map_bed   = f"/faststorage/project/megaFauna/sa_megafauna/data/{group}/masking/{ref_folder}_mappability_mask.bed",
                                                 cov_bed     = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/masked_regions/merge_mask_{pop}_{group}.bed",
@@ -297,9 +305,10 @@ for i in range(species_and_refs.shape[0]):
         job_id_final_mask_merge = f"final_merge_mask_{pop}_{group}"
         smc_files = []
         vcf2smc_dones = []
-        for chrom in subset_chromosomes:
+        for i, chrom in enumerate(subset_chromosomes):
             job_id_vcf2smc = f"vcf2smc_{pop}_{chrom}_{group}"
             #subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_vcf2smc])
+            #subprocess.run(["touch", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_vcf2smc])
             vcf2smc_dones.append(f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_vcf2smc)
             smc_files.append(f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/smc_files/{pop}_{chrom}_{group}.smc.gz")
             gwf.target_from_template(job_id_vcf2smc,
@@ -307,6 +316,7 @@ for i in range(species_and_refs.shape[0]):
                                              mask       = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/masked_regions/final_mask_{pop}_{group}.bed.gz",
                                              chrom        = chrom,
                                              pop        = f"{group}:{",".join(sample_dict[pop])}",
+                                             distinguished = sample_dict[pop][i % len(sample_dict[pop])],
                                              smc_file   = f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/smcpp/smc_files/{pop}_{chrom}_{group}.smc.gz",
                                              done_prev  = [f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_final_mask_merge, 
                                                            f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_pop_and_missingness],
@@ -314,7 +324,7 @@ for i in range(species_and_refs.shape[0]):
 
         # C.2 - estimate population size
         job_id_smcpp_estimate = f"smcpp_estimate_{pop}_{n_contigs_included}_{group}"
-        subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate])
+        #subprocess.run(["rm", f"/faststorage/project/megaFauna/sa_megafauna/results/{group}/done/" + job_id_smcpp_estimate])
         gwf.target_from_template(job_id_smcpp_estimate,
                                  smcpp_estimate(smc_files       = smc_files,
                                                 mu              = mu,

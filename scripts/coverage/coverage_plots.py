@@ -13,7 +13,7 @@ else:
     path_prefix = "/faststorage/project/"
 
 genus_list      = ["Loxodonta", "Elephas", "Boselaphus", "Panthera", "Rhinoceros", "Ceratotherium", "Diceros"]
-#genus_list = ["Elephas"]
+genus_list = ["Boselaphus"]
 data            = pd.concat([pd.read_table(f) for f in [f"{path_prefix}/megaFauna/sa_megafauna/metadata/samples_{genus}.txt" for genus in genus_list]], ignore_index=True) # add all SRR accession from genus_list in a single data frame
 data            = data.reset_index(drop=True)
 ref_folders     = sorted(set(data.REFERENCE_FOLDER)) # list of references needed to map the SRR accessions
@@ -47,11 +47,12 @@ for i in range(species_and_refs.shape[0]):
     df_coverage = pd.read_table(f"{path_prefix}/megaFauna/sa_megafauna/data/{ref_folder}/ref/samples_coverage_stats.txt", delimiter="\t")
     df_coverage = df_coverage[df_coverage.IND_ID.isin(inds_to_include)]
     # edit dataframe so we have cov_A >= 10 and cov_len_A >= 0.95 --> these will get a true in the "cov_filter" column
-    df_coverage['cov_filter'] = (df_coverage['cov_A'] >= 10) & (df_coverage['cov_len_A'] >= 0.90)
+    df_coverage['cov_filter'] = (df_coverage['cov_A'] >= 10) & (df_coverage['cov_len_A'] >= 0.8)
     filter_counts = df_coverage['cov_filter'].value_counts()
     n_pass = filter_counts.get(True, 0)
     n_fail = filter_counts.get(False, 0)
-
+    parts = group.split('_')
+    formatted = f"$\it{{{parts[0][0]}. {' '.join(parts[1:])}}}$"
     df_coverage['cov filter'] = df_coverage['cov_filter'].map({
         True: f'True (n={n_pass})',
         False: f'False (n={n_fail})'
@@ -81,6 +82,7 @@ for i in range(species_and_refs.shape[0]):
     ax_top.set_ylabel('Count')
     ax_top.set_xticks([])
     ax_top.set_xlabel('')
+    ax_top.set_title(formatted)
     ax_top.tick_params(bottom=False)
 
     ### FRACTION ###

@@ -286,14 +286,13 @@ def roh_make(gvcfs, samples, roh_file, done_prev, done):
     """
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
 
-
 def roh_mask(roh_file, roh_bed, done_prev, done):
     inputs  = [done_prev]
     outputs = [done]
     options = {"memory": "16g", "cores": 1, "walltime": "05:00:00", 'account': "megaFauna"}
     executor = Conda("megafauna")
     spec = f"""
-    awk '$1 == "RG" && $6 >= 4000000 {{print $3, $4, $5}}' OFS="\\t" {roh_file} | \
+    awk '$1 == "RG" && $6 >= 10000000 {{print $3, $4, $5}}' OFS="\\t" {roh_file} | \
     sort -k1,1 -k2,2n | bedtools merge -i stdin > {roh_bed}
     touch {done}
     """
@@ -307,7 +306,7 @@ def repeat_mask(repeat_file, repeat_bed, done_prev, done):
     spec = f"""
     # Ensure proper tab delimitation and unix line endings
     sed 's/[[:space:]]\\+/\\t/g; s/\\r//' {repeat_file} | \
-        awk '$3 - $2 >= 100' > {repeat_file}.filtered
+        awk '$3 - $2 >= 90' > {repeat_file}.filtered
     bedtools merge -i {repeat_file}.filtered > {repeat_bed}
     rm {repeat_file}.filtered
 
@@ -342,8 +341,8 @@ def final_merge_mask(map_bed, cov_bed, rep_bed, assembly_bed, roh_bed, final_bed
     executor = Conda("megafauna")
     spec = f"""
     # Merge mappability bed and coverage bed into one
-    cat {map_bed} {cov_bed} {rep_bed} {assembly_bed} | \
-        sort -k1,1 -k2,2n | bedtools merge -d 1200 -i stdin > {final_bed}
+    cat {map_bed} {cov_bed} {rep_bed} {assembly_bed} {roh_bed} | \
+        sort -k1,1 -k2,2n | bedtools merge -d 3100 -i stdin > {final_bed}
 
     bgzip -f {final_bed}
     tabix -p bed {final_bed}.gz
@@ -374,7 +373,7 @@ def mask_stats(sample_beds, roh_bed, mappability_bed, rep_bed, assembly_bed, cov
 
 # B.1 - convert vcf file to smc files
 
-def vcf2smc(vcf_in, mask, chrom, pop, smc_file, done_prev, done):
+def vcf2smc(vcf_in, mask, chrom, pop, distinguished, smc_file, done_prev, done):
     inputs = done_prev
     outputs = [done]
     options = default_options.copy()
@@ -382,7 +381,7 @@ def vcf2smc(vcf_in, mask, chrom, pop, smc_file, done_prev, done):
     spec = f"""
     mkdir -p "$(dirname "{smc_file}")"
     smc++ vcf2smc {vcf_in} {smc_file} \
-    {chrom} {pop} -m {mask}
+    {chrom} {pop} -m {mask} -d {distinguished} {distinguished}
 
     touch {done}
     """
@@ -395,8 +394,8 @@ def smcpp_estimate(smc_files, mu, estimate_name, outdir, done_prev, done):
     options = {"memory": "32g", "cores":  8, "walltime": "10:00:00", 'account': "megaFauna"}
     executor = Conda("smcpp")
     spec = f"""
-    smc++ estimate --base {estimate_name} --em-iterations 2 --cores 8 \
-    --timepoints 150 100000 --knots 16 {mu} {" ".join(smc_files)} \
+    smc++ estimate --base {estimate_name} --em-iterations 30 --cores 8 -rp 5 \
+    --timepoints 100 100000 --knots 15 {mu} {" ".join(smc_files)} \
         -o {outdir}
 
     touch {done}

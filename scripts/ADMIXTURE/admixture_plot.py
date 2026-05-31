@@ -34,7 +34,8 @@ print(f"{group}: Best K = {best_k} (CV error = {cv[best_k]:.4f})")
 n_plots = (k_max - k_min + 1) + 1  # one per K + CV error
 fig = plt.figure(figsize=(14, n_plots * 1.5))
 gs  = gridspec.GridSpec(n_plots, 1, hspace=1.0)
-
+parts = group.split('_')
+formatted = f"$\it{{{parts[0][0]}. {' '.join(parts[1:])}}}$"
 # CV error plot
 ax_cv = fig.add_subplot(gs[0])
 ax_cv.plot(list(cv.keys()), list(cv.values()), marker="o", color="black")

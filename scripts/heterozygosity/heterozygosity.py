@@ -79,11 +79,12 @@ for i in range(species_and_refs.shape[0]):
         ax.axhline(mean_val, color='black', linestyle='--')
         ax.text(len(merged_df) * 0.01, mean_val, f"mean = {mean_val:.5f}",
                 va='bottom', ha='left', fontsize=9, color='black')
-
+    parts = group.split('_')
+    formatted = f"$\it{{{parts[0][0]}. {' '.join(parts[1:])}}}$"
     ax.set_xticks([])
     ax.set_xlabel("Samples", fontsize=12)
     ax.set_ylabel("Autosome Heterozygosity", fontsize=12)
-    ax.set_title(group)
+    ax.set_title(formatted)
     plt.tight_layout()
 
     os.makedirs(f"{path_prefix}/megaFauna/sa_megafauna/results/shared/heterozygosity/", exist_ok=True)
@@ -159,7 +160,8 @@ for idx, (ax, group) in enumerate(zip(axes, groups)):
     
     for patch, pop_idx in zip(bp['boxes'], range(len(populations))):
         patch.set_facecolor(colors[pop_idx % len(colors)])
-
+    for median in bp['medians']:
+        median.set_color('black')
     # Format species name as L. africana in italics
     parts = group.split('_')
     formatted = f"$\it{{{parts[0][0]}. {' '.join(parts[1:])}}}$"

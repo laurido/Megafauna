@@ -156,10 +156,11 @@ for idx, (group, df, explained_var, pop_col) in enumerate(pca_results):
         ax.legend(fontsize=6, markerscale=0.8)
     else:
         ax.scatter(df["PC1"], df["PC2"], edgecolor='black', s=40)
-
+    parts = group.split('_')
+    formatted = f"$\it{{{parts[0][0]}. {' '.join(parts[1:])}}}$"
     ax.set_xlabel(f"PC1 ({explained_var[0]*100:.2f}%)")
     ax.set_ylabel(f"PC2 ({explained_var[1]*100:.2f}%)")
-    ax.set_title(group)
+    ax.set_title(formatted)
     ax.grid(True)
 
 for j in range(idx + 1, len(axes)):

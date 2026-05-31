@@ -47,12 +47,13 @@ for i in range(species_and_refs.shape[0]):
     ne_df = pd.read_csv(glob.glob(f"{path_prefix}/megaFauna/sa_megafauna/results/{group}/GONE/*_GONE2_Ne")[0], sep="\t")
     ne_df["time_years_ago"] = ne_df["Generation"] * generation
     os.makedirs(f"{path_prefix}/megaFauna/sa_megafauna/results/shared/GONE/", exist_ok=True)
-
+    parts = group.split('_')
+    formatted = f"$\it{{{parts[0][0]}. {' '.join(parts[1:])}}}$"
     # Plotting
     plt.figure(figsize=(8, 5))
     plt.plot(ne_df["time_years_ago"], ne_df["Ne_diploids"], linestyle='-')
     plt.gca()  # Optional: makes the most recent generation appear on the left
-    plt.title(f"{group} GONE2")
+    plt.title(f"{formatted}")
     plt.xlabel("Years Ago", fontsize=14)
     plt.ylabel("$N_e$", fontsize=14)
     plt.grid(True)

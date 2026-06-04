@@ -8,10 +8,9 @@ if (startsWith(getwd(), "/home/lakrids")) {
 df <- read_csv(paste0(path_prefix, "/megaFauna/sa_megafauna/data/bioclim/modeling_data.csv"))
 
 df <- df %>% rename(temperature = mean_temp, npp = mean_npp, precipitation = mean_prec) %>%
-  filter(species != "Rhinoceros_unicornis", species != "Panthera_uncia")%>%
   arrange(species, time_kya) %>%
   group_by(species) %>%
-  mutate(lag_temperature = lag(temperature), time_bp_kya = -time_kya) %>%
+  mutate(lag_temperature = lag(temperature), temperature_s = scale(temperature)) %>%
   ungroup() 
 
 df <- df %>%
@@ -19,8 +18,8 @@ df <- df %>%
 df %>% filter(startsWith(species, "Panthera"))
 
 df %>%
-  ggplot(aes(x = -log10(-time_bp_kya), y = log(Ne), colour = species)) +
-  geom_point() +
+  ggplot(aes(x = log10(time_kya), y = log(Ne), colour = species)) +
+  geom_step() +
   labs(x = "Time (kya)", y = "Ne", colour = "Species")
 
 #### Core mixed-effects model: Ne ~ combination of different climate + human predictors
@@ -28,11 +27,12 @@ df %>%
 # Here are some example, but of course more combinations are possible:
 # linear temperature effect
 m_linT <- lmer(
-  log(Ne) ~ temperature + p_human +
-    (1 + temperature + p_human | species),
+  log(Ne) ~ temperature_s + p_human +
+    (1 + temperature_s + p_human | species),
   data = df
 )
 summary(m_linT)
+coef(m_linT)$species
 m_simple <- lmer(log(Ne) ~ temperature + p_human + (1 | species), 
                  data = df, weights = window_size)
 AIC(m_linT, m_simple)

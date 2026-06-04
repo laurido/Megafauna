@@ -47,7 +47,7 @@ for i in range(species_and_refs.shape[0]):
     df_coverage = pd.read_table(f"{path_prefix}/megaFauna/sa_megafauna/data/{ref_folder}/ref/samples_coverage_stats.txt", delimiter="\t")
     df_coverage = df_coverage[df_coverage.IND_ID.isin(inds_to_include)]
     # edit dataframe so we have cov_A >= 10 and cov_len_A >= 0.95 --> these will get a true in the "cov_filter" column
-    df_coverage['cov_filter'] = (df_coverage['cov_A'] >= 10) & (df_coverage['cov_len_A'] >= 0.8)
+    df_coverage['cov_filter'] = (df_coverage['cov_A'] >= 10) & (df_coverage['cov_len_A'] >= 0.9)
     filter_counts = df_coverage['cov_filter'].value_counts()
     n_pass = filter_counts.get(True, 0)
     n_fail = filter_counts.get(False, 0)

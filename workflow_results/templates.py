@@ -204,19 +204,6 @@ def sample_merge_mask(beds, merged_bed, done_prev, done):
     """
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
 
-#def merge_mask(beds, merged_bed, done_prev, done):
-#    inputs = done_prev
-#    outputs = [done]
-#    options = default_options.copy()
-#    executor = Conda("megafauna")
-#    spec = f"""
-#    # Merge all per-contig mask files into one population mask
-#    sort -k1,1 -k2,2n {" ".join(beds)} | \
-#       bedtools merge -i stdin > {merged_bed}
-#    touch {done}
-#    """
-#    return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
-
 def merge_mask(beds, merged_bed, miss_frac, done_prev, done):
     inputs = done_prev
     outputs = [merged_bed, done]
@@ -244,6 +231,7 @@ def merge_mask(beds, merged_bed, miss_frac, done_prev, done):
     touch {done}
     """
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
+
 def mappability_mask(fasta, mask_bed, index, genmap_out, done):
     inputs  = [fasta]
     outputs = [done]
@@ -306,7 +294,7 @@ def repeat_mask(repeat_file, repeat_bed, done_prev, done):
     spec = f"""
     # Ensure proper tab delimitation and unix line endings
     sed 's/[[:space:]]\\+/\\t/g; s/\\r//' {repeat_file} | \
-        awk '$3 - $2 >= 90' > {repeat_file}.filtered
+        awk '$3 - $2 > 100' > {repeat_file}.filtered
     bedtools merge -i {repeat_file}.filtered > {repeat_bed}
     rm {repeat_file}.filtered
 
@@ -341,8 +329,8 @@ def final_merge_mask(map_bed, cov_bed, rep_bed, assembly_bed, roh_bed, final_bed
     executor = Conda("megafauna")
     spec = f"""
     # Merge mappability bed and coverage bed into one
-    cat {map_bed} {cov_bed} {rep_bed} {assembly_bed} {roh_bed} | \
-        sort -k1,1 -k2,2n | bedtools merge -d 3100 -i stdin > {final_bed}
+    cat {map_bed} {cov_bed} {rep_bed} {assembly_bed} | \
+        sort -k1,1 -k2,2n | bedtools merge -d 500 -i stdin > {final_bed}
 
     bgzip -f {final_bed}
     tabix -p bed {final_bed}.gz
@@ -394,8 +382,8 @@ def smcpp_estimate(smc_files, mu, estimate_name, outdir, done_prev, done):
     options = {"memory": "32g", "cores":  8, "walltime": "10:00:00", 'account': "megaFauna"}
     executor = Conda("smcpp")
     spec = f"""
-    smc++ estimate --base {estimate_name} --em-iterations 30 --cores 8 -rp 5 \
-    --timepoints 100 100000 --knots 15 {mu} {" ".join(smc_files)} \
+    smc++ estimate --base {estimate_name} --em-iterations 2 --cores 8 \
+    --timepoints 100 50000 --knots 10 {mu} {" ".join(smc_files)} \
         -o {outdir}
 
     touch {done}

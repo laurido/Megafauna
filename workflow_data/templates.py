@@ -1086,15 +1086,14 @@ def snps_filtering(inds, gvcf_in, vcf_out, prev_done, done):
         bcftools view -s {inds} {gvcf_in} --force-samples |
             bcftools view -e "FILTER='LowQual'" |
             bcftools norm -m -any |
-            bcftools view -m2 -M2 -v snps |
+            bcftools view -v snps |
             bcftools filter -e "QD < 2.0 | FS > 60.0 | MQ < 40.0 | SOR > 3.0 | ReadPosRankSum < -8.0 | MQRankSum < -12.5" |
             bcftools +setGT -- -t q -n . -i 'FMT/DP < 5' |
-            bcftools +setGT -- -t q -n . -i 'FMT/GQ < 20' |
+            bcftools +setGT -- -t q -n . -i 'FMT/GQ < 30' |
             bcftools +setGT -- -t q -n . -i 'FMT/GT="het" & FMT/AD[*:*] < 3' |
             bcftools +setGT -- -t q -n . -i 'FMT/GT="het" & sMIN(FMT/AD[GT])/sMAX(FMT/AD[GT]) < 0.3' |
             bcftools +fill-tags -- -t all |
             bcftools view -i "INFO/AC > 0" |
-
             sed 's/|/\\//g' |
 
             bcftools view -Oz -o {vcf_out}
@@ -1104,6 +1103,11 @@ def snps_filtering(inds, gvcf_in, vcf_out, prev_done, done):
     """
 
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec)
+
+#bcftools +setGT -- -t q -n . -i 'FMT/GT="het" & FMT/AD[*:*] < 3' |
+#bcftools +setGT -- -t q -n . -i 'FMT/GT="het" & sMIN(FMT/AD[GT])/sMAX(FMT/AD[GT]) < 0.3' |
+
+
 
 def count_snps_by_ind(ind, vcf, chrom_type, outfile, prev_done, done):
     """

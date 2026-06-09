@@ -64,10 +64,10 @@ gn_filtered = gn_filtered[stds > 0]
 print(f"SNPs after all filters: {gn_filtered.shape[0]}")
 
 # Random subsample if still too many
-#max_snps = 100000
-#if gn_filtered.shape[0] > max_snps:
-#    idx         = np.random.choice(gn_filtered.shape[0], max_snps, replace=False)
-#    gn_filtered = gn_filtered[idx]
+max_snps = 100000
+if gn_filtered.shape[0] > max_snps:
+    idx         = np.random.choice(gn_filtered.shape[0], max_snps, replace=False)
+    gn_filtered = gn_filtered[idx]
 
 # PCA
 coords, model = allel.pca(

@@ -17,6 +17,44 @@ df <- df %>%
   mutate(window_size = window_end - time_kya)
 df %>% filter(startsWith(species, "Panthera"))
 
+fig1 <- df %>%
+  filter(!is.na(Ne)) %>%
+  ggplot(aes(x = log10(time_kya * 1000), y = p_human, colour = species)) +
+  geom_step() +
+  scale_x_continuous(
+    labels = function(x) parse(text = paste0("10^", x)),
+    name   = "Years ago"
+  ) +
+  scale_y_continuous(
+    labels = function(x) parse(text = paste0(x)),
+    name   = "Human pressure"
+  ) +
+  scale_colour_brewer(palette = "Paired", name = "Species") +
+  theme_classic(base_size = 12) +
+  theme(legend.text = element_text(face = "italic"))
+
+ggsave(paste0(path_prefix, "/megaFauna/sa_megafauna/results/shared/modeling","/fig5_ne_trajectories.png"), fig1, width = 10, height = 6, dpi = 300)
+
+
+fig1 <- df %>%
+  filter(!is.na(Ne)) %>%
+  ggplot(aes(x = log10(time_kya * 1000), y = temperature_s, colour = species)) +
+  geom_step() +
+  scale_x_continuous(
+    labels = function(x) parse(text = paste0("10^", x)),
+    name   = "Years ago"
+  ) +
+  scale_y_continuous(
+    labels = function(x) parse(text = paste0(x)),
+    name   = "Scaled temperature"
+  ) +
+  scale_colour_brewer(palette = "Paired", name = "Species") +
+  theme_classic(base_size = 12) +
+  theme(legend.text = element_text(face = "italic"))
+
+ggsave(paste0(path_prefix, "/megaFauna/sa_megafauna/results/shared/modeling","/fig4_ne_trajectories.png"), fig1, width = 10, height = 6, dpi = 300)
+
+
 df %>%
   ggplot(aes(x = log10(time_kya), y = log(Ne), colour = species)) +
   geom_step() +
@@ -106,3 +144,4 @@ AIC(m_mass, m_gentime, m_both)
 #   temperature:log(generation_time)- is climate sensitivity greater in slower species?
 #   p_human:log(generation_time)    - is human impact greater in slower species?
 summary(m_both)
+

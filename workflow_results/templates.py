@@ -209,7 +209,7 @@ def merge_mask(beds, merged_bed, miss_frac, done_prev, done):
     outputs = [merged_bed, done]
     options = default_options.copy()
     executor = Conda("megafauna")
-    threshold = math.ceil(len(beds) * miss_frac)
+    threshold = round(len(beds) * miss_frac)
     spec = f"""
     for bed in {' '.join(beds)}; do
     awk '{{print $1, $2, $3, 1}}' OFS="\\t" "$bed" > "$bed.bg"
@@ -222,12 +222,11 @@ def merge_mask(beds, merged_bed, miss_frac, done_prev, done):
         for (i = 4; i <= NF; i++) if ($i > 0) sum++
         if (sum >= thresh) print $1"\\t"$2"\\t"$3
     }}' {merged_bed}.union.tmp \
-        | bedtools merge -d 10 -i stdin > {merged_bed}
+        | bedtools merge -i stdin > {merged_bed}
 
     rm {' '.join([b + '.bg' for b in beds])}
     rm {merged_bed}.union.tmp
 
-    
     touch {done}
     """
     return AnonymousTarget(inputs=inputs, outputs=outputs, options=options, spec=spec, executor=executor)
@@ -294,7 +293,7 @@ def repeat_mask(repeat_file, repeat_bed, done_prev, done):
     spec = f"""
     # Ensure proper tab delimitation and unix line endings
     sed 's/[[:space:]]\\+/\\t/g; s/\\r//' {repeat_file} | \
-        awk '$3 - $2 > 100' > {repeat_file}.filtered
+        awk '$3 - $2 > 0' > {repeat_file}.filtered
     bedtools merge -i {repeat_file}.filtered > {repeat_bed}
     rm {repeat_file}.filtered
 
@@ -329,8 +328,8 @@ def final_merge_mask(map_bed, cov_bed, rep_bed, assembly_bed, roh_bed, final_bed
     executor = Conda("megafauna")
     spec = f"""
     # Merge mappability bed and coverage bed into one
-    cat {map_bed} {cov_bed} {rep_bed} {assembly_bed} | \
-        sort -k1,1 -k2,2n | bedtools merge -d 500 -i stdin > {final_bed}
+    cat {map_bed} {cov_bed} {assembly_bed} {rep_bed} | \
+        sort -k1,1 -k2,2n | bedtools merge -d 100 -i stdin > {final_bed}
 
     bgzip -f {final_bed}
     tabix -p bed {final_bed}.gz
@@ -382,8 +381,8 @@ def smcpp_estimate(smc_files, mu, estimate_name, outdir, done_prev, done):
     options = {"memory": "32g", "cores":  8, "walltime": "10:00:00", 'account': "megaFauna"}
     executor = Conda("smcpp")
     spec = f"""
-    smc++ estimate --base {estimate_name} --em-iterations 2 --cores 8 \
-    --timepoints 100 50000 --knots 10 {mu} {" ".join(smc_files)} \
+    smc++ estimate --base {estimate_name} --em-iterations 1 --cores 8 -rp 5 \
+    --timepoints 100 50000 --knots 20 {mu} {" ".join(smc_files)} \
         -o {outdir}
 
     touch {done}

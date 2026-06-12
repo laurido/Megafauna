@@ -6,7 +6,7 @@ import pickle
 import os
 import math
 
-genus_list      = ["Loxodonta", "Boselaphus", "Panthera", "Elephas", "Ceratotherium", "Diceros"]
+genus_list      = ["Boselaphus", "Ceratotherium", "Diceros", "Elephas", "Loxodonta", "Panthera", "Rhinoceros"]
 data            = pd.concat([pd.read_table(f) for f in [f"/faststorage/project/megaFauna/sa_megafauna/metadata/samples_{genus}.txt" for genus in genus_list]], ignore_index=True)
 data            = data.reset_index(drop=True)
 ref_folders     = sorted(set(data.REFERENCE_FOLDER))
@@ -136,10 +136,10 @@ print(f"Total removed: {len(removed_samples)}")
 # -------------------------------
 
 n = len(pca_results)
-cols = 4
+cols = 3
 rows = math.ceil(n / cols)
 
-fig, axes = plt.subplots(rows, cols, figsize=(18, 10))
+fig, axes = plt.subplots(rows, cols, figsize=(18, 18))
 axes = axes.flatten()
 
 for idx, (group, df, explained_var, pop_col) in enumerate(pca_results):

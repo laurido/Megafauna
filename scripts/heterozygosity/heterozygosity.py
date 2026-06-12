@@ -8,7 +8,7 @@ if os.getcwd().startswith("/home/lakrids"):
 else:
     path_prefix = "/faststorage/project/"
 
-genus_list      = ["Loxodonta", "Elephas", "Boselaphus", "Panthera", "Rhinoceros", "Ceratotherium", "Diceros"]
+genus_list      = ["Boselaphus", "Ceratotherium", "Diceros", "Elephas", "Loxodonta", "Panthera", "Rhinoceros"]
 data            = pd.concat([pd.read_table(f) for f in [f"{path_prefix}/megaFauna/sa_megafauna/metadata/samples_{genus}.txt" for genus in genus_list]], ignore_index=True) # add all SRR accession from genus_list in a single data frame
 data            = data.reset_index(drop=True)
 ref_folders     = sorted(set(data.REFERENCE_FOLDER)) # list of references needed to map the SRR accessions
@@ -179,7 +179,7 @@ for idx, (ax, group) in enumerate(zip(axes, groups)):
         ax.tick_params(left=False)
 
 axes[0].set_ylabel("Autosome Heterozygosity", fontsize=12)
-fig.suptitle("Heterozygosity by Population", fontsize=14, y=1.02)
+#fig.suptitle("Heterozygosity by Population", fontsize=14, y=1.02)
 plt.tight_layout()
 
 os.makedirs(f"{path_prefix}/megaFauna/sa_megafauna/results/shared/heterozygosity/", exist_ok=True)

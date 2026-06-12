@@ -12,7 +12,7 @@ if os.getcwd().startswith("/home/lakrids"):
 else:
     path_prefix = "/faststorage/project/"
 
-genus_list      = ["Loxodonta", "Elephas", "Boselaphus", "Panthera", "Rhinoceros", "Ceratotherium", "Diceros"]
+genus_list      = ["Boselaphus", "Ceratotherium", "Diceros", "Elephas", "Loxodonta", "Panthera", "Rhinoceros"]
 data            = pd.concat([pd.read_table(f) for f in [f"{path_prefix}/megaFauna/sa_megafauna/metadata/samples_{genus}.txt" for genus in genus_list]], ignore_index=True) # add all SRR accession from genus_list in a single data frame
 data            = data.reset_index(drop=True)
 ref_folders     = sorted(set(data.REFERENCE_FOLDER)) # list of references needed to map the SRR accessions
@@ -41,6 +41,7 @@ def significance_stars(p):
 
 ne_dict = {}
 correlations_by_species = {}
+human_dict = {}
 
 for i in range(species_and_refs.shape[0]):
     # Initialising folders and variables for putting in the functions
@@ -70,8 +71,13 @@ for i in range(species_and_refs.shape[0]):
         ne_dict[country] = []
     ne_dict[country].append(entry)
 
-    human_df = pd.read_csv(f'{path_prefix}/megaFauna/sa_megafauna/data/human_impact/{biogeo}.csv')
-    human_df.columns = ["Year", "Inhabitants", "Cropland", "Urban"] + list(human_df.columns[4:])
+    if country not in human_dict:
+        human_df = pd.read_csv(
+        f'{path_prefix}/megaFauna/sa_megafauna/data/human_impact/{biogeo}.csv')
+        human_dict[country] = human_df
+        human_df.columns = ["Year", "Inhabitants", "Cropland", "Urban"] + list(human_df.columns[4:])
+    else:
+        human_df = human_dict[country]
 
     os.makedirs(f"{path_prefix}/megaFauna/sa_megafauna/results/shared/human_impact/", exist_ok=True)
 
@@ -143,9 +149,9 @@ for i in range(species_and_refs.shape[0]):
         ne_df["Year"],
         ne_df["Ne_diploids"],
         linewidth=4,
-        label="Ne_diploids"
+        label=f"{group}"
     )
-    ax1b.set_ylabel("Ne_diploids", fontsize = 20)
+    ax1b.set_ylabel(f"Ne_diploids", fontsize = 20)
 
     # Combine legends
     lines1, labels1 = ax1.get_legend_handles_labels()
@@ -193,9 +199,9 @@ for i in range(species_and_refs.shape[0]):
         ne_df["Year"],
         ne_df["Ne_diploids"],
         linewidth=4,
-        label="Ne_diploids"
+        label=f"{group}"
     )
-    ax2b.set_ylabel("Ne_diploids", fontsize = 20)
+    ax2b.set_ylabel(f"Ne_diploids", fontsize = 20)
 
     # Combine legends
     lines1, labels1 = ax2.get_legend_handles_labels()
@@ -220,9 +226,11 @@ for i in range(species_and_refs.shape[0]):
     plt.savefig(f"{path_prefix}/megaFauna/sa_megafauna/results/shared/human_impact/{group}_human_impact")
     plt.close()
 
-for country, entries in ne_dict.items():
 
+for country, entries in ne_dict.items():
     fig, ax1 = plt.subplots(figsize=(20, 10))
+
+    human_df = human_dict[country] 
 
     # Plot inhabitants
     ax1.plot(
@@ -263,8 +271,8 @@ for country, entries in ne_dict.items():
     ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper right", fontsize=18)
 
     # Formatting
-    ax1.set_xlim(reference_year, 825)
-    xticks = np.arange(825, reference_year + 1, 100)
+    ax1.set_xlim(reference_year, 800)
+    xticks = np.arange(800, reference_year + 1, 100)
     ax1.set_xticks(xticks)
     ax1.tick_params(axis="x", rotation=45, labelsize=18)
     ax1.tick_params(axis="y", labelsize=18)
